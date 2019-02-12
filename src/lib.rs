@@ -52,17 +52,22 @@ impl<R: Read> BufRefReader<R> {
 		}
 	}
 
-	pub fn read(&mut self, n: usize) -> Result<&[u8]> {
+	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>> {
 		while n > self.end - self.start {
 			// fill and expand buffer until either:
 			// - buffer starts holding the requested amount of data
 			// - EOF is reached
 			if self.fill()? { break };
 		}
-		let end = min(self.end, self.start+n);
-		let output = &self.buf[ self.start .. end ];
-		self.start = end;
-		Ok(output)
+		if self.start == self.end {
+			// reading past EOF
+			Ok(None)
+		} else {
+			let end = min(self.end, self.start+n);
+			let output = &self.buf[ self.start .. end ];
+			self.start = end;
+			Ok(Some(output))
+		}
 	}
 
 	/// Returns bytes until `delim` or EOF is reached. If no content available, returns `None`.
@@ -117,9 +122,9 @@ mod tests {
 	#[test]
 	fn read() {
 		let mut r = BufRefReader::with_capacity(&b"lorem ipsum dolor sit amet"[..], 4);
-		assert_eq!(r.read(5).unwrap(), b"lorem");
-		assert_eq!(r.read(6).unwrap(), b" ipsum");
-		assert_eq!(r.read(1024).unwrap(), b" dolor sit amet");
-		assert_eq!(r.read(1).unwrap(), b"");
+		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
+		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
+		assert_eq!(r.read(1024).unwrap(), Some(&b" dolor sit amet"[..]));
+		assert_eq!(r.read(1).unwrap(), None);
 	}
 }
