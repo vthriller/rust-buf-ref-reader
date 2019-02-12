@@ -64,7 +64,8 @@ impl<R: Read> BufRefReader<R> {
 		Ok(output)
 	}
 
-	pub fn read_until(&mut self, delim: u8) -> Result<&[u8]> {
+	/// Returns bytes until `delim` or EOF is reached. If no content available, returns `None`.
+	pub fn read_until(&mut self, delim: u8) -> Result<Option<&[u8]>> {
 		let mut len = None;
 		loop {
 			// fill and expand buffer until either:
@@ -78,16 +79,19 @@ impl<R: Read> BufRefReader<R> {
 		}
 
 		match len {
-			None => {
-				// if EOF, return everything
-				let output = &self.buf[ self.start .. self.end ];
-				self.start = self.end;
-				Ok(output)
+			None => { // EOF
+				if self.start == self.end {
+					Ok(None)
+				} else {
+					let output = &self.buf[ self.start .. self.end ];
+					self.start = self.end;
+					Ok(Some(output))
+				}
 			},
 			Some(len) => {
 				let output = &self.buf[ self.start .. self.start + len ];
 				self.start += len + 1; // also silently consume delimiter
-				Ok(output)
+				Ok(Some(output))
 			},
 		}
 	}
@@ -100,12 +104,13 @@ mod tests {
 	#[test]
 	fn read_until() {
 		let mut r = BufRefReader::with_capacity(&b"lorem ipsum dolor sit amet"[..], 4);
-		assert_eq!(r.read_until(b' ').unwrap(), b"lorem");
-		assert_eq!(r.read_until(b' ').unwrap(), b"ipsum");
-		assert_eq!(r.read_until(b' ').unwrap(), b"dolor");
-		assert_eq!(r.read_until(b' ').unwrap(), b"sit");
-		assert_eq!(r.read_until(b' ').unwrap(), b"amet");
-		assert_eq!(r.read_until(b' ').unwrap(), b"");
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"dolor"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"sit"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"amet"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), None);
+		assert_eq!(r.read_until(b' ').unwrap(), None);
 	}
 
 	#[test]
