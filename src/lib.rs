@@ -212,6 +212,10 @@ mod bench_read {
 	fn bufref_64x16x4(b: &mut Bencher) {
 		bufref(b, 64, 16, 4)
 	}
+	#[bench]
+	fn bufref_4kx4kx4(b: &mut Bencher) {
+		bufref(b, 4096, 4096, 4)
+	}
 
 	fn std(b: &mut Bencher, cap: usize, read: usize) {
 		b.iter(|| {
@@ -230,6 +234,11 @@ mod bench_read {
 	#[bench]
 	fn std_64x4(b: &mut Bencher) {
 		std(b, 16, 4)
+	}
+
+	#[bench]
+	fn std_4kx4(b: &mut Bencher) {
+		std(b, 4096, 4)
 	}
 }
 
@@ -264,6 +273,10 @@ mod bench_read_until {
 	fn bufref_64x64(b: &mut Bencher) {
 		bufref(b, 64, 64)
 	}
+	#[bench]
+	fn bufref_4kx4k(b: &mut Bencher) {
+		bufref(b, 4096, 4096)
+	}
 
 	fn std_read_until(b: &mut Bencher, cap: usize) {
 		b.iter(|| {
@@ -280,6 +293,10 @@ mod bench_read_until {
 	#[bench]
 	fn std_read_until_64(b: &mut Bencher) {
 		std_read_until(b, 64)
+	}
+	#[bench]
+	fn std_read_until_4k(b: &mut Bencher) {
+		std_read_until(b, 4096)
 	}
 
 	// this is obviously slow due to utf8 validation
