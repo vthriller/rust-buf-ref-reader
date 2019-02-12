@@ -131,16 +131,14 @@ mod tests {
 }
 
 #[cfg(test)]
-mod bench {
+mod bench_read {
 	extern crate test;
 	use test::{Bencher, black_box};
 	use super::*;
 	use std::io::{BufRead, BufReader};
 
-	////
-
 	#[bench]
-	fn bufref_read(b: &mut Bencher) {
+	fn bufref(b: &mut Bencher) {
 		b.iter(|| {
 			let mut r = BufRefReader::with_capacity(&include_bytes!("lib.rs")[..], 16);
 			while r.read(4).unwrap() != None {}
@@ -148,18 +146,25 @@ mod bench {
 	}
 
 	#[bench]
-	fn std_read(b: &mut Bencher) {
+	fn std(b: &mut Bencher) {
 		b.iter(|| {
 			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
 			let mut buf = [0; 4];
 			while r.read(&mut buf[..]).unwrap() != 0 {}
 		})
 	}
+}
 
-	////
+#[cfg(test)]
+mod bench_read_until {
+	extern crate test;
+	use test::{Bencher, black_box};
+	use super::*;
+	use std::io::{BufRead, BufReader};
+
 
 	#[bench]
-	fn bufref_read_until(b: &mut Bencher) {
+	fn bufref(b: &mut Bencher) {
 		b.iter(|| {
 			let mut r = BufRefReader::with_capacity(&include_bytes!("lib.rs")[..], 16);
 			while r.read_until(b'\n').unwrap() != None {}
