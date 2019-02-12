@@ -248,6 +248,7 @@ mod bench_read_until {
 	use test::{Bencher, black_box};
 	use super::*;
 	use std::io::{BufRead, BufReader};
+	use std::collections::HashMap;
 
 	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
@@ -297,6 +298,54 @@ mod bench_read_until {
 	#[bench]
 	fn std_read_until_4k(b: &mut Bencher) {
 		std_read_until(b, 4096)
+	}
+
+	////
+
+	fn prefix(s: &[u8]) -> &[u8] {
+		&s[ .. std::cmp::min(s.len(), 3) ]
+	}
+
+	#[bench]
+	fn bufref_sophisticated(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufRefReaderBuilder::new(&WORDS[..])
+				.capacity(4096)
+				.increment(4096)
+				.create();
+			let mut map = HashMap::new();
+			loop {
+				let line = r.read_until(b'\n').unwrap();
+				match line {
+					None => break, // EOF
+					Some(line) => {
+						// .entry() does not accept Borrow<K>, hence this
+						let p = prefix(&line);
+						match map.get_mut(p) {
+							Some(v) => { *v += 1; },
+							None => { map.insert(p.to_vec(), 1); },
+						}
+					},
+				}
+			}
+		})
+	}
+
+	#[bench]
+	fn std_read_until_sophisticated(b: &mut Bencher) {
+		b.iter(|| {
+			let mut map: HashMap<Vec<u8>, _> = HashMap::new();
+			let mut r = BufReader::with_capacity(4096, &WORDS[..]);
+			let mut buf = vec![];
+			while r.read_until(b'\n', &mut buf).unwrap() != 0 {
+				// .entry() does not accept Borrow<K>, hence this
+				let p = prefix(&buf);
+				match map.get_mut(p) {
+					Some(v) => { *v += 1; },
+					None => { map.insert(p.to_vec(), 1); },
+				}
+			}
+		})
 	}
 
 	// this is obviously slow due to utf8 validation
