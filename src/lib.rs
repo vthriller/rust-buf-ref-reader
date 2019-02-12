@@ -2,7 +2,6 @@
 #![feature(test)]
 
 use std::io::{Read, Result};
-use std::cmp::min;
 use memchr::memchr;
 
 pub struct BufRefReader<R> {
@@ -11,6 +10,11 @@ pub struct BufRefReader<R> {
 	// position of data within the `buf`
 	start: usize,
 	end: usize,
+}
+
+// XXX hack; see BufRefReader.filled below
+macro_rules! filled {
+	($self:ident) => (&$self.buf[ $self.start .. $self.end ])
 }
 
 impl<R: Read> BufRefReader<R> {
@@ -53,6 +57,17 @@ impl<R: Read> BufRefReader<R> {
 		}
 	}
 
+	// returns usable part of `buf`
+	// for now it is manually inlined with the filled!() macro
+	// due to immutable borrowing of `self.start` (as part of `self` as a whole)
+	// which causes E0506 when we try to advance `self.start` after using `self.filled()`
+	/*
+	#[inline]
+	fn filled(&self) -> &[u8] {
+		&self.buf[ self.start .. self.end ]
+	}
+	*/
+
 	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>> {
 		while n > self.end - self.start {
 			// fill and expand buffer until either:
@@ -64,9 +79,13 @@ impl<R: Read> BufRefReader<R> {
 			// reading past EOF
 			Ok(None)
 		} else {
-			let end = min(self.end, self.start+n);
-			let output = &self.buf[ self.start .. end ];
-			self.start = end;
+			let output = filled!(self);
+			let output = if n < output.len() {
+				&output[..n]
+			} else {
+				output
+			};
+			self.start += output.len();
 			Ok(Some(output))
 		}
 	}
@@ -78,7 +97,7 @@ impl<R: Read> BufRefReader<R> {
 			// fill and expand buffer until either:
 			// - `delim` appears in the buffer
 			// - EOF is reached
-			if let Some(n) = memchr(delim, &self.buf[ self.start .. self.end ]) {
+			if let Some(n) = memchr(delim, filled!(self)) {
 				len = Some(n);
 				break;
 			}
