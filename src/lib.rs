@@ -192,9 +192,11 @@ mod bench_read {
 	use super::*;
 	use std::io::{BufRead, BufReader};
 
+	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
+
 	fn bufref(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		b.iter(|| {
-			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
+			let mut r = BufRefReaderBuilder::new(&WORDS[..])
 				.capacity(cap)
 				.increment(incr)
 				.create();
@@ -213,7 +215,7 @@ mod bench_read {
 
 	fn std(b: &mut Bencher, cap: usize, read: usize) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(cap, &include_bytes!("/usr/share/dict/words")[..]);
+			let mut r = BufReader::with_capacity(cap, &WORDS[..]);
 			let mut buf = Vec::with_capacity(read);
 			unsafe { buf.set_len(read); }
 			while r.read(&mut buf[..]).unwrap() != 0 {}
@@ -238,9 +240,11 @@ mod bench_read_until {
 	use super::*;
 	use std::io::{BufRead, BufReader};
 
+	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
+
 	fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 		b.iter(|| {
-			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
+			let mut r = BufRefReaderBuilder::new(&WORDS[..])
 				.capacity(cap)
 				.increment(incr)
 				.create();
@@ -263,7 +267,7 @@ mod bench_read_until {
 
 	fn std_read_until(b: &mut Bencher, cap: usize) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(cap, &include_bytes!("/usr/share/dict/words")[..]);
+			let mut r = BufReader::with_capacity(cap, &WORDS[..]);
 			let mut buf = vec![];
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
 		})
@@ -283,7 +287,7 @@ mod bench_read_until {
 	#[bench]
 	fn std_lines(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &include_bytes!("/usr/share/dict/words")[..]);
+			let mut r = BufReader::with_capacity(16, &WORDS[..]);
 			for i in r.lines() {
 				black_box(i);
 			}
