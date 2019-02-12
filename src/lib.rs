@@ -59,8 +59,9 @@ impl<R: Read> BufRefReader<R> {
 			// - EOF is reached
 			if self.fill()? { break };
 		}
-		let output = &self.buf[ self.start .. min(self.end, self.start+n) ];
-		self.start += n;
+		let end = min(self.end, self.start+n);
+		let output = &self.buf[ self.start .. end ];
+		self.start = end;
 		Ok(output)
 	}
 
@@ -119,5 +120,6 @@ mod tests {
 		assert_eq!(r.read(5).unwrap(), b"lorem");
 		assert_eq!(r.read(6).unwrap(), b" ipsum");
 		assert_eq!(r.read(1024).unwrap(), b" dolor sit amet");
+		assert_eq!(r.read(1).unwrap(), b"");
 	}
 }
