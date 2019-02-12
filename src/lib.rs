@@ -7,6 +7,7 @@ use memchr::memchr;
 pub struct BufRefReader<R> {
 	src: R,
 	buf: Vec<u8>,
+	incr: usize,
 	// position of data within the `buf`
 	start: usize,
 	end: usize,
@@ -20,17 +21,24 @@ macro_rules! filled {
 pub struct BufRefReaderBuilder<R> {
 	src: R,
 	bufsize: usize,
+	incr: usize,
 }
 impl<R: Read> BufRefReaderBuilder<R> {
 	pub fn new(src: R) -> Self {
 		BufRefReaderBuilder {
 			src,
 			bufsize: 8192,
+			incr: 8192,
 		}
 	}
 
 	pub fn capacity(mut self, bufsize: usize) -> Self {
 		self.bufsize = bufsize;
+		self
+	}
+
+	pub fn increment(mut self, incr: usize) -> Self {
+		self.incr= incr;
 		self
 	}
 
@@ -41,6 +49,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		BufRefReader {
 			src: self.src,
 			buf,
+			incr: self.incr,
 			start: 0, end: 0,
 		}
 	}
@@ -57,9 +66,8 @@ impl<R: Read> BufRefReader<R> {
 	fn fill(&mut self) -> Result<bool> {
 		if self.start == 0 && self.end == self.buf.len() {
 			// this buffer is already full, expand
-			// TODO configurable
-			self.buf.reserve(8192);
-			unsafe { self.buf.set_len(self.buf.len() + 8192) };
+			self.buf.reserve(self.incr);
+			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
 		} else {
 			// reallocate and fill existing buffer
 			if self.end - self.start != 0 {
@@ -153,6 +161,7 @@ mod tests {
 	fn read_until() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
+			.increment(4)
 			.create();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
@@ -167,6 +176,7 @@ mod tests {
 	fn read() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
+			.increment(4)
 			.create();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
@@ -187,6 +197,7 @@ mod bench_read {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
 				.capacity(16)
+				.increment(16)
 				.create();
 			while r.read(4).unwrap() != None {}
 		})
@@ -215,6 +226,7 @@ mod bench_read_until {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
 				.capacity(16)
+				.increment(16)
 				.create();
 			while r.read_until(b'\n').unwrap() != None {}
 		})
