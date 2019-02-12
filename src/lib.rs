@@ -180,6 +180,8 @@ mod bench_read_until {
 		})
 	}
 
+	// this is obviously slow due to utf8 validation
+	/*
 	#[bench]
 	fn std_lines(b: &mut Bencher) {
 		b.iter(|| {
@@ -189,4 +191,5 @@ mod bench_read_until {
 			}
 		})
 	}
+	*/
 }
