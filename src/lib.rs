@@ -192,24 +192,42 @@ mod bench_read {
 	use super::*;
 	use std::io::{BufRead, BufReader};
 
-	#[bench]
-	fn bufref(b: &mut Bencher) {
+	fn bufref(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
-				.capacity(16)
-				.increment(16)
+				.capacity(cap)
+				.increment(incr)
 				.create();
-			while r.read(4).unwrap() != None {}
+			while r.read(read).unwrap() != None {}
 		})
 	}
 
 	#[bench]
-	fn std(b: &mut Bencher) {
+	fn bufref_16x16x4(b: &mut Bencher) {
+		bufref(b, 16, 16, 4)
+	}
+	#[bench]
+	fn bufref_64x16x4(b: &mut Bencher) {
+		bufref(b, 64, 16, 4)
+	}
+
+	fn std(b: &mut Bencher, cap: usize, read: usize) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &include_bytes!("/usr/share/dict/words")[..]);
-			let mut buf = [0; 4];
+			let mut r = BufReader::with_capacity(cap, &include_bytes!("/usr/share/dict/words")[..]);
+			let mut buf = Vec::with_capacity(read);
+			unsafe { buf.set_len(read); }
 			while r.read(&mut buf[..]).unwrap() != 0 {}
 		})
+	}
+
+	#[bench]
+	fn std_16x4(b: &mut Bencher) {
+		std(b, 16, 4)
+	}
+
+	#[bench]
+	fn std_64x4(b: &mut Bencher) {
+		std(b, 16, 4)
 	}
 }
 
@@ -220,25 +238,44 @@ mod bench_read_until {
 	use super::*;
 	use std::io::{BufRead, BufReader};
 
-
-	#[bench]
-	fn bufref(b: &mut Bencher) {
+	fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
-				.capacity(16)
-				.increment(16)
+				.capacity(cap)
+				.increment(incr)
 				.create();
 			while r.read_until(b'\n').unwrap() != None {}
 		})
 	}
 
 	#[bench]
-	fn std_read_until(b: &mut Bencher) {
+	fn bufref_16x16(b: &mut Bencher) {
+		bufref(b, 16, 16)
+	}
+	#[bench]
+	fn bufref_64x16(b: &mut Bencher) {
+		bufref(b, 64, 16)
+	}
+	#[bench]
+	fn bufref_64x64(b: &mut Bencher) {
+		bufref(b, 64, 64)
+	}
+
+	fn std_read_until(b: &mut Bencher, cap: usize) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &include_bytes!("/usr/share/dict/words")[..]);
+			let mut r = BufReader::with_capacity(cap, &include_bytes!("/usr/share/dict/words")[..]);
 			let mut buf = vec![];
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
 		})
+	}
+
+	#[bench]
+	fn std_read_until_16(b: &mut Bencher) {
+		std_read_until(b, 16)
+	}
+	#[bench]
+	fn std_read_until_64(b: &mut Bencher) {
+		std_read_until(b, 64)
 	}
 
 	// this is obviously slow due to utf8 validation
