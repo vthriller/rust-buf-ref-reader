@@ -17,18 +17,40 @@ macro_rules! filled {
 	($self:ident) => (&$self.buf[ $self.start .. $self.end ])
 }
 
-impl<R: Read> BufRefReader<R> {
-	pub fn new(src: R) -> BufRefReader<R> {
-		Self::with_capacity(src, 8192)
+pub struct BufRefReaderBuilder<R> {
+	src: R,
+	bufsize: usize,
+}
+impl<R: Read> BufRefReaderBuilder<R> {
+	pub fn new(src: R) -> Self {
+		BufRefReaderBuilder {
+			src,
+			bufsize: 8192,
+		}
 	}
 
-	pub fn with_capacity(src: R, capacity: usize) -> BufRefReader<R> {
-		let mut buf = Vec::with_capacity(capacity);
-		unsafe { buf.set_len(capacity); }
+	pub fn capacity(mut self, bufsize: usize) -> Self {
+		self.bufsize = bufsize;
+		self
+	}
+
+	pub fn create(self) -> BufRefReader<R> {
+		let mut buf = Vec::with_capacity(self.bufsize);
+		unsafe { buf.set_len(self.bufsize); }
+
 		BufRefReader {
-			src, buf,
+			src: self.src,
+			buf,
 			start: 0, end: 0,
 		}
+	}
+}
+
+
+impl<R: Read> BufRefReader<R> {
+	pub fn new(src: R) -> BufRefReader<R> {
+		BufRefReaderBuilder::new(src)
+			.create()
 	}
 
 	// returns true for EOF
@@ -129,7 +151,9 @@ mod tests {
 
 	#[test]
 	fn read_until() {
-		let mut r = BufRefReader::with_capacity(&b"lorem ipsum dolor sit amet"[..], 4);
+		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
+			.capacity(4)
+			.create();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"dolor"[..]));
@@ -141,7 +165,9 @@ mod tests {
 
 	#[test]
 	fn read() {
-		let mut r = BufRefReader::with_capacity(&b"lorem ipsum dolor sit amet"[..], 4);
+		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
+			.capacity(4)
+			.create();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
 		assert_eq!(r.read(1024).unwrap(), Some(&b" dolor sit amet"[..]));
@@ -159,7 +185,9 @@ mod bench_read {
 	#[bench]
 	fn bufref(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufRefReader::with_capacity(&include_bytes!("/usr/share/dict/words")[..], 16);
+			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
+				.capacity(16)
+				.create();
 			while r.read(4).unwrap() != None {}
 		})
 	}
@@ -185,7 +213,9 @@ mod bench_read_until {
 	#[bench]
 	fn bufref(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufRefReader::with_capacity(&include_bytes!("/usr/share/dict/words")[..], 16);
+			let mut r = BufRefReaderBuilder::new(&include_bytes!("/usr/share/dict/words")[..])
+				.capacity(16)
+				.create();
 			while r.read_until(b'\n').unwrap() != None {}
 		})
 	}
