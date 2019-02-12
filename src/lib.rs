@@ -1,4 +1,5 @@
 #![feature(copy_within)]
+#![feature(test)]
 
 use std::io::{Read, Result};
 use std::cmp::min;
@@ -126,5 +127,61 @@ mod tests {
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
 		assert_eq!(r.read(1024).unwrap(), Some(&b" dolor sit amet"[..]));
 		assert_eq!(r.read(1).unwrap(), None);
+	}
+}
+
+#[cfg(test)]
+mod bench {
+	extern crate test;
+	use test::{Bencher, black_box};
+	use super::*;
+	use std::io::{BufRead, BufReader};
+
+	////
+
+	#[bench]
+	fn bufref_read(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufRefReader::with_capacity(&include_bytes!("lib.rs")[..], 16);
+			while r.read(4).unwrap() != None {}
+		})
+	}
+
+	#[bench]
+	fn std_read(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
+			let mut buf = [0; 4];
+			while r.read(&mut buf[..]).unwrap() != 0 {}
+		})
+	}
+
+	////
+
+	#[bench]
+	fn bufref_read_until(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufRefReader::with_capacity(&include_bytes!("lib.rs")[..], 16);
+			while r.read_until(b'\n').unwrap() != None {}
+		})
+	}
+
+	#[bench]
+	fn std_read_until(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
+			let mut buf = vec![];
+			while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
+		})
+	}
+
+	#[bench]
+	fn std_lines(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
+			for i in r.lines() {
+				black_box(i);
+			}
+		})
 	}
 }
