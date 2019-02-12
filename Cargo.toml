@@ -5,3 +5,4 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+memchr = "2"

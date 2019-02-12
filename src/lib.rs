@@ -2,6 +2,7 @@
 
 use std::io::{Read, Result};
 use std::cmp::min;
+use memchr::memchr;
 
 pub struct BufRefReader<R> {
 	src: R,
@@ -62,11 +63,50 @@ impl<R: Read> BufRefReader<R> {
 		self.start += n;
 		Ok(output)
 	}
+
+	pub fn read_until(&mut self, delim: u8) -> Result<&[u8]> {
+		let mut len = None;
+		loop {
+			// fill and expand buffer until either:
+			// - `delim` appears in the buffer
+			// - EOF is reached
+			if let Some(n) = memchr(delim, &self.buf[ self.start .. self.end ]) {
+				len = Some(n);
+				break;
+			}
+			if self.fill()? { break };
+		}
+
+		match len {
+			None => {
+				// if EOF, return everything
+				let output = &self.buf[ self.start .. self.end ];
+				self.start = self.end;
+				Ok(output)
+			},
+			Some(len) => {
+				let output = &self.buf[ self.start .. self.start + len ];
+				self.start += len + 1; // also silently consume delimiter
+				Ok(output)
+			},
+		}
+	}
 }
 
 #[cfg(test)]
 mod tests {
 	use super::*;
+
+	#[test]
+	fn read_until() {
+		let mut r = BufRefReader::with_capacity(&b"lorem ipsum dolor sit amet"[..], 4);
+		assert_eq!(r.read_until(b' ').unwrap(), b"lorem");
+		assert_eq!(r.read_until(b' ').unwrap(), b"ipsum");
+		assert_eq!(r.read_until(b' ').unwrap(), b"dolor");
+		assert_eq!(r.read_until(b' ').unwrap(), b"sit");
+		assert_eq!(r.read_until(b' ').unwrap(), b"amet");
+		assert_eq!(r.read_until(b' ').unwrap(), b"");
+	}
 
 	#[test]
 	fn read() {
