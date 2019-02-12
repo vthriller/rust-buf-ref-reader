@@ -140,7 +140,7 @@ mod bench_read {
 	#[bench]
 	fn bufref(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufRefReader::with_capacity(&include_bytes!("lib.rs")[..], 16);
+			let mut r = BufRefReader::with_capacity(&include_bytes!("/usr/share/dict/words")[..], 16);
 			while r.read(4).unwrap() != None {}
 		})
 	}
@@ -148,7 +148,7 @@ mod bench_read {
 	#[bench]
 	fn std(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
+			let mut r = BufReader::with_capacity(16, &include_bytes!("/usr/share/dict/words")[..]);
 			let mut buf = [0; 4];
 			while r.read(&mut buf[..]).unwrap() != 0 {}
 		})
@@ -166,7 +166,7 @@ mod bench_read_until {
 	#[bench]
 	fn bufref(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufRefReader::with_capacity(&include_bytes!("lib.rs")[..], 16);
+			let mut r = BufRefReader::with_capacity(&include_bytes!("/usr/share/dict/words")[..], 16);
 			while r.read_until(b'\n').unwrap() != None {}
 		})
 	}
@@ -174,7 +174,7 @@ mod bench_read_until {
 	#[bench]
 	fn std_read_until(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
+			let mut r = BufReader::with_capacity(16, &include_bytes!("/usr/share/dict/words")[..]);
 			let mut buf = vec![];
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
 		})
@@ -183,7 +183,7 @@ mod bench_read_until {
 	#[bench]
 	fn std_lines(b: &mut Bencher) {
 		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &include_bytes!("lib.rs")[..]);
+			let mut r = BufReader::with_capacity(16, &include_bytes!("/usr/share/dict/words")[..]);
 			for i in r.lines() {
 				black_box(i);
 			}
