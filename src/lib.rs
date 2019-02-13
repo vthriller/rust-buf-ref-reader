@@ -298,8 +298,6 @@ mod bench_read_until {
 	use test::Bencher;
 	use super::*;
 	use std::io::{BufRead, BufReader};
-	use fnv::FnvHashMap;
-	use memchr::memchr_iter;
 
 	fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 		b.iter(|| {
@@ -337,8 +335,16 @@ mod bench_read_until {
 	#[bench] fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
 	#[bench] fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
 	#[bench] fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
+}
 
-	////
+#[cfg(test)]
+mod bench_hashmap {
+	extern crate test;
+	use test::Bencher;
+	use super::*;
+	use std::io::{BufRead, BufReader};
+	use fnv::FnvHashMap;
+	use memchr::memchr_iter;
 
 	/*
 	With GNU's miscfiles-1.5 web2 as a words file:
