@@ -429,6 +429,35 @@ mod bench_read_until {
 		std_read_until_sophisticated(b, 4, 28000)
 	}
 
+	fn baseline_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
+		b.iter(|| {
+			let mut map = map(cap);
+			let mut words = WORDS.split(|&c| c == b'\n');
+			for line in words {
+				// .entry() does not accept Borrow<K>, hence this
+				let p = prefix(&line, n);
+				match map.get_mut(p) {
+					Some(v) => { *v += 1; },
+					None => { map.insert(p.to_vec(), 1); },
+				}
+			}
+		})
+	}
+	#[bench]
+	fn baseline_sophisticated_2(b: &mut Bencher) {
+		baseline_sophisticated(b, 2, 750)
+	}
+	#[bench]
+	fn baseline_sophisticated_3(b: &mut Bencher) {
+		baseline_sophisticated(b, 3, 6500)
+	}
+	#[bench]
+	fn baseline_sophisticated_4(b: &mut Bencher) {
+		baseline_sophisticated(b, 4, 28000)
+	}
+
+	////
+
 	// this is obviously slow due to utf8 validation
 	/*
 	#[bench]
