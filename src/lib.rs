@@ -191,9 +191,9 @@ mod tests {
 #[cfg(test)]
 mod bench_read {
 	extern crate test;
-	use test::{Bencher, black_box};
+	use test::Bencher;
 	use super::*;
-	use std::io::{BufRead, BufReader};
+	use std::io::BufReader;
 
 	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
@@ -248,7 +248,7 @@ mod bench_read {
 #[cfg(test)]
 mod bench_read_until {
 	extern crate test;
-	use test::{Bencher, black_box};
+	use test::Bencher;
 	use super::*;
 	use std::io::{BufRead, BufReader};
 	use fnv::FnvHashMap;
