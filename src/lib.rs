@@ -275,19 +275,9 @@ mod bench_read {
 			while r.read(read).unwrap() != None {}
 		})
 	}
-
-	#[bench]
-	fn bufref_16x16x4(b: &mut Bencher) {
-		bufref(b, 16, 16, 4)
-	}
-	#[bench]
-	fn bufref_64x16x4(b: &mut Bencher) {
-		bufref(b, 64, 16, 4)
-	}
-	#[bench]
-	fn bufref_4kx4kx4(b: &mut Bencher) {
-		bufref(b, 4096, 4096, 4)
-	}
+	#[bench] fn bufref_16x16x4(b: &mut Bencher) { bufref(b, 16, 16, 4) }
+	#[bench] fn bufref_64x16x4(b: &mut Bencher) { bufref(b, 64, 16, 4) }
+	#[bench] fn bufref_4kx4kx4(b: &mut Bencher) { bufref(b, 4096, 4096, 4) }
 
 	fn std(b: &mut Bencher, cap: usize, read: usize) {
 		b.iter(|| {
@@ -297,21 +287,9 @@ mod bench_read {
 			while r.read(&mut buf[..]).unwrap() != 0 {}
 		})
 	}
-
-	#[bench]
-	fn std_16x4(b: &mut Bencher) {
-		std(b, 16, 4)
-	}
-
-	#[bench]
-	fn std_64x4(b: &mut Bencher) {
-		std(b, 16, 4)
-	}
-
-	#[bench]
-	fn std_4kx4(b: &mut Bencher) {
-		std(b, 4096, 4)
-	}
+	#[bench] fn std_16x4(b: &mut Bencher) { std(b, 16, 4) }
+	#[bench] fn std_64x4(b: &mut Bencher) { std(b, 16, 4) }
+	#[bench] fn std_4kx4(b: &mut Bencher) { std(b, 4096, 4) }
 }
 
 #[cfg(test)]
@@ -332,23 +310,10 @@ mod bench_read_until {
 			while r.read_until(b'\n').unwrap() != None {}
 		})
 	}
-
-	#[bench]
-	fn bufref_16x16(b: &mut Bencher) {
-		bufref(b, 16, 16)
-	}
-	#[bench]
-	fn bufref_64x16(b: &mut Bencher) {
-		bufref(b, 64, 16)
-	}
-	#[bench]
-	fn bufref_64x64(b: &mut Bencher) {
-		bufref(b, 64, 64)
-	}
-	#[bench]
-	fn bufref_4kx4k(b: &mut Bencher) {
-		bufref(b, 4096, 4096)
-	}
+	#[bench] fn bufref_16x16(b: &mut Bencher) { bufref(b, 16, 16) }
+	#[bench] fn bufref_64x16(b: &mut Bencher) { bufref(b, 64, 16) }
+	#[bench] fn bufref_64x64(b: &mut Bencher) { bufref(b, 64, 64) }
+	#[bench] fn bufref_4kx4k(b: &mut Bencher) { bufref(b, 4096, 4096) }
 
 	// like read_until_words_long, splits by the most rare character in WORDS
 	#[bench]
@@ -369,19 +334,9 @@ mod bench_read_until {
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
 		})
 	}
-
-	#[bench]
-	fn std_read_until_16(b: &mut Bencher) {
-		std_read_until(b, 16)
-	}
-	#[bench]
-	fn std_read_until_64(b: &mut Bencher) {
-		std_read_until(b, 64)
-	}
-	#[bench]
-	fn std_read_until_4k(b: &mut Bencher) {
-		std_read_until(b, 4096)
-	}
+	#[bench] fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
+	#[bench] fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
+	#[bench] fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
 
 	////
 
@@ -427,30 +382,12 @@ mod bench_read_until {
 			}
 		})
 	}
-	#[bench]
-	fn bufref_sophisticated_4k_2(b: &mut Bencher) {
-		bufref_sophisticated(b, 4096, 2, 750)
-	}
-	#[bench]
-	fn bufref_sophisticated_4k_3(b: &mut Bencher) {
-		bufref_sophisticated(b, 4096, 3, 6500)
-	}
-	#[bench]
-	fn bufref_sophisticated_4k_4(b: &mut Bencher) {
-		bufref_sophisticated(b, 4096, 4, 28000)
-	}
-	#[bench]
-	fn bufref_sophisticated_64k_2(b: &mut Bencher) {
-		bufref_sophisticated(b, 65536, 2, 750)
-	}
-	#[bench]
-	fn bufref_sophisticated_64k_3(b: &mut Bencher) {
-		bufref_sophisticated(b, 65536, 3, 6500)
-	}
-	#[bench]
-	fn bufref_sophisticated_64k_4(b: &mut Bencher) {
-		bufref_sophisticated(b, 65536, 4, 28000)
-	}
+	#[bench] fn bufref_sophisticated_4k_2(b: &mut Bencher) { bufref_sophisticated(b, 4096, 2, 750) }
+	#[bench] fn bufref_sophisticated_4k_3(b: &mut Bencher) { bufref_sophisticated(b, 4096, 3, 6500) }
+	#[bench] fn bufref_sophisticated_4k_4(b: &mut Bencher) { bufref_sophisticated(b, 4096, 4, 28000) }
+	#[bench] fn bufref_sophisticated_64k_2(b: &mut Bencher) { bufref_sophisticated(b, 65536, 2, 750) }
+	#[bench] fn bufref_sophisticated_64k_3(b: &mut Bencher) { bufref_sophisticated(b, 65536, 3, 6500) }
+	#[bench] fn bufref_sophisticated_64k_4(b: &mut Bencher) { bufref_sophisticated(b, 65536, 4, 28000) }
 
 	fn std_read_until_sophisticated(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		b.iter(|| {
@@ -467,30 +404,12 @@ mod bench_read_until {
 			}
 		})
 	}
-	#[bench]
-	fn std_read_until_sophisticated_4k_2(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 4096, 2, 750)
-	}
-	#[bench]
-	fn std_read_until_sophisticated_4k_3(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 4096, 3, 6500)
-	}
-	#[bench]
-	fn std_read_until_sophisticated_4k_4(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 4096, 4, 28000)
-	}
-	#[bench]
-	fn std_read_until_sophisticated_64k_2(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 65536, 2, 750)
-	}
-	#[bench]
-	fn std_read_until_sophisticated_64k_3(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 65536, 3, 6500)
-	}
-	#[bench]
-	fn std_read_until_sophisticated_64k_4(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 65536, 4, 28000)
-	}
+	#[bench] fn std_read_until_sophisticated_4k_2(b: &mut Bencher) { std_read_until_sophisticated(b, 4096, 2, 750) }
+	#[bench] fn std_read_until_sophisticated_4k_3(b: &mut Bencher) { std_read_until_sophisticated(b, 4096, 3, 6500) }
+	#[bench] fn std_read_until_sophisticated_4k_4(b: &mut Bencher) { std_read_until_sophisticated(b, 4096, 4, 28000) }
+	#[bench] fn std_read_until_sophisticated_64k_2(b: &mut Bencher) { std_read_until_sophisticated(b, 65536, 2, 750) }
+	#[bench] fn std_read_until_sophisticated_64k_3(b: &mut Bencher) { std_read_until_sophisticated(b, 65536, 3, 6500) }
+	#[bench] fn std_read_until_sophisticated_64k_4(b: &mut Bencher) { std_read_until_sophisticated(b, 65536, 4, 28000) }
 
 	fn baseline_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
 		b.iter(|| {
@@ -517,18 +436,9 @@ mod bench_read_until {
 			}
 		})
 	}
-	#[bench]
-	fn baseline_sophisticated_2(b: &mut Bencher) {
-		baseline_sophisticated(b, 2, 750)
-	}
-	#[bench]
-	fn baseline_sophisticated_3(b: &mut Bencher) {
-		baseline_sophisticated(b, 3, 6500)
-	}
-	#[bench]
-	fn baseline_sophisticated_4(b: &mut Bencher) {
-		baseline_sophisticated(b, 4, 28000)
-	}
+	#[bench] fn baseline_sophisticated_2(b: &mut Bencher) { baseline_sophisticated(b, 2, 750) }
+	#[bench] fn baseline_sophisticated_3(b: &mut Bencher) { baseline_sophisticated(b, 3, 6500) }
+	#[bench] fn baseline_sophisticated_4(b: &mut Bencher) { baseline_sophisticated(b, 4, 28000) }
 
 	////
 
