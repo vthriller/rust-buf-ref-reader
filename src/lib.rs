@@ -200,6 +200,23 @@ mod tests {
 		assert_eq!(words.next(), None);
 	}
 
+	// like read_until_words, but splits by rarest character, which is b'Q'
+	// also uses slightly bigger initial buffers
+	#[test]
+	fn read_until_words_long() {
+		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+			.capacity(32)
+			.increment(32)
+			.create();
+		let mut words = WORDS.split(|&c| c == b'Q');
+		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
+			let slice_words = words.next().unwrap();
+			assert_eq!(slice_buf, slice_words);
+		}
+
+		assert_eq!(words.next(), None);
+	}
+
 	#[test]
 	fn read() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
