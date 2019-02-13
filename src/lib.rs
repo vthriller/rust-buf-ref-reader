@@ -305,6 +305,19 @@ mod bench_read_until {
 
 	////
 
+	/*
+	With GNU's miscfiles-1.5 web2 as a words file:
+
+	$ wc -l words
+	234937 words
+	$ for i in {2..4}; do cut -c-$i < words | sort -u | wc -l; done
+	716
+	6395
+	27638
+
+	That's 0.3%, 2.7%, 11.8% of lines that cause allocations upon introduction into the HashMap.
+	*/
+
 	#[inline]
 	fn prefix(s: &[u8], n: usize) -> &[u8] {
 		&s[ .. std::cmp::min(s.len(), n) ]
