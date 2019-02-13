@@ -248,7 +248,7 @@ mod bench_read_until {
 	use test::{Bencher, black_box};
 	use super::*;
 	use std::io::{BufRead, BufReader};
-	use std::collections::HashMap;
+	use fnv::FnvHashMap;
 
 	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
@@ -313,7 +313,7 @@ mod bench_read_until {
 				.capacity(4096)
 				.increment(4096)
 				.create();
-			let mut map = HashMap::new();
+			let mut map = FnvHashMap::default();
 			loop {
 				let line = r.read_until(b'\n').unwrap();
 				match line {
@@ -334,7 +334,7 @@ mod bench_read_until {
 	#[bench]
 	fn std_read_until_sophisticated(b: &mut Bencher) {
 		b.iter(|| {
-			let mut map: HashMap<Vec<u8>, _> = HashMap::new();
+			let mut map: FnvHashMap<Vec<u8>, _> = FnvHashMap::default();
 			let mut r = BufReader::with_capacity(4096, &WORDS[..]);
 			let mut buf = vec![];
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {
