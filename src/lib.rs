@@ -439,19 +439,4 @@ mod bench_read_until {
 	#[bench] fn baseline_sophisticated_2(b: &mut Bencher) { baseline_sophisticated(b, 2, 750) }
 	#[bench] fn baseline_sophisticated_3(b: &mut Bencher) { baseline_sophisticated(b, 3, 6500) }
 	#[bench] fn baseline_sophisticated_4(b: &mut Bencher) { baseline_sophisticated(b, 4, 28000) }
-
-	////
-
-	// this is obviously slow due to utf8 validation
-	/*
-	#[bench]
-	fn std_lines(b: &mut Bencher) {
-		b.iter(|| {
-			let mut r = BufReader::with_capacity(16, &WORDS[..]);
-			for i in r.lines() {
-				black_box(i);
-			}
-		})
-	}
-	*/
 }
