@@ -314,19 +314,13 @@ mod bench_read_until {
 				.increment(4096)
 				.create();
 			let mut map = FnvHashMap::default();
-			loop {
-				let line = r.read_until(b'\n').unwrap();
-				match line {
-					None => break, // EOF
-					Some(line) => {
+			while let Some(line) = r.read_until(b'\n').unwrap() {
 						// .entry() does not accept Borrow<K>, hence this
 						let p = prefix(&line, n);
 						match map.get_mut(p) {
 							Some(v) => { *v += 1; },
 							None => { map.insert(p.to_vec(), 1); },
 						}
-					},
-				}
 			}
 		})
 	}
