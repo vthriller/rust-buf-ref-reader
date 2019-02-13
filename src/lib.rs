@@ -315,12 +315,12 @@ mod bench_read_until {
 				.create();
 			let mut map = FnvHashMap::default();
 			while let Some(line) = r.read_until(b'\n').unwrap() {
-						// .entry() does not accept Borrow<K>, hence this
-						let p = prefix(&line, n);
-						match map.get_mut(p) {
-							Some(v) => { *v += 1; },
-							None => { map.insert(p.to_vec(), 1); },
-						}
+				// .entry() does not accept Borrow<K>, hence this
+				let p = prefix(&line, n);
+				match map.get_mut(p) {
+					Some(v) => { *v += 1; },
+					None => { map.insert(p.to_vec(), 1); },
+				}
 			}
 		})
 	}
