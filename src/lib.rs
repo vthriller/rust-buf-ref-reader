@@ -364,13 +364,20 @@ mod bench_read_until {
 		&s[ .. std::cmp::min(s.len(), n) ]
 	}
 
-	fn bufref_sophisticated(b: &mut Bencher, n: usize) {
+	// we're testing readers first and foremost,
+	// hence fnv and predetermined capacity
+	#[inline]
+	fn map(cap: usize) -> FnvHashMap<Vec<u8>, usize> {
+		FnvHashMap::with_capacity_and_hasher(cap, Default::default())
+	}
+
+	fn bufref_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&WORDS[..])
 				.capacity(4096)
 				.increment(4096)
 				.create();
-			let mut map = FnvHashMap::default();
+			let mut map = map(cap);
 			while let Some(line) = r.read_until(b'\n').unwrap() {
 				// .entry() does not accept Borrow<K>, hence this
 				let p = prefix(&line, n);
@@ -383,20 +390,20 @@ mod bench_read_until {
 	}
 	#[bench]
 	fn bufref_sophisticated_2(b: &mut Bencher) {
-		bufref_sophisticated(b, 2)
+		bufref_sophisticated(b, 2, 750)
 	}
 	#[bench]
 	fn bufref_sophisticated_3(b: &mut Bencher) {
-		bufref_sophisticated(b, 3)
+		bufref_sophisticated(b, 3, 6500)
 	}
 	#[bench]
 	fn bufref_sophisticated_4(b: &mut Bencher) {
-		bufref_sophisticated(b, 4)
+		bufref_sophisticated(b, 4, 28000)
 	}
 
-	fn std_read_until_sophisticated(b: &mut Bencher, n: usize) {
+	fn std_read_until_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
 		b.iter(|| {
-			let mut map: FnvHashMap<Vec<u8>, _> = FnvHashMap::default();
+			let mut map = map(cap);
 			let mut r = BufReader::with_capacity(4096, &WORDS[..]);
 			let mut buf = vec![];
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {
@@ -411,15 +418,15 @@ mod bench_read_until {
 	}
 	#[bench]
 	fn std_read_until_sophisticated_2(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 2)
+		std_read_until_sophisticated(b, 2, 750)
 	}
 	#[bench]
 	fn std_read_until_sophisticated_3(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 3)
+		std_read_until_sophisticated(b, 3, 6500)
 	}
 	#[bench]
 	fn std_read_until_sophisticated_4(b: &mut Bencher) {
-		std_read_until_sophisticated(b, 4)
+		std_read_until_sophisticated(b, 4, 28000)
 	}
 
 	// this is obviously slow due to utf8 validation
