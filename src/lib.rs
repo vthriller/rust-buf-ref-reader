@@ -38,7 +38,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	pub fn increment(mut self, incr: usize) -> Self {
-		self.incr= incr;
+		self.incr = incr;
 		self
 	}
 
