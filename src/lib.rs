@@ -302,12 +302,12 @@ mod bench_read_until {
 
 	////
 
-	fn prefix(s: &[u8]) -> &[u8] {
-		&s[ .. std::cmp::min(s.len(), 3) ]
+	#[inline]
+	fn prefix(s: &[u8], n: usize) -> &[u8] {
+		&s[ .. std::cmp::min(s.len(), n) ]
 	}
 
-	#[bench]
-	fn bufref_sophisticated(b: &mut Bencher) {
+	fn bufref_sophisticated(b: &mut Bencher, n: usize) {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&WORDS[..])
 				.capacity(4096)
@@ -320,7 +320,7 @@ mod bench_read_until {
 					None => break, // EOF
 					Some(line) => {
 						// .entry() does not accept Borrow<K>, hence this
-						let p = prefix(&line);
+						let p = prefix(&line, n);
 						match map.get_mut(p) {
 							Some(v) => { *v += 1; },
 							None => { map.insert(p.to_vec(), 1); },
@@ -330,22 +330,37 @@ mod bench_read_until {
 			}
 		})
 	}
-
 	#[bench]
-	fn std_read_until_sophisticated(b: &mut Bencher) {
+	fn bufref_sophisticated_2(b: &mut Bencher) {
+		bufref_sophisticated(b, 2)
+	}
+	#[bench]
+	fn bufref_sophisticated_3(b: &mut Bencher) {
+		bufref_sophisticated(b, 3)
+	}
+
+	fn std_read_until_sophisticated(b: &mut Bencher, n: usize) {
 		b.iter(|| {
 			let mut map: FnvHashMap<Vec<u8>, _> = FnvHashMap::default();
 			let mut r = BufReader::with_capacity(4096, &WORDS[..]);
 			let mut buf = vec![];
 			while r.read_until(b'\n', &mut buf).unwrap() != 0 {
 				// .entry() does not accept Borrow<K>, hence this
-				let p = prefix(&buf);
+				let p = prefix(&buf, n);
 				match map.get_mut(p) {
 					Some(v) => { *v += 1; },
 					None => { map.insert(p.to_vec(), 1); },
 				}
 			}
 		})
+	}
+	#[bench]
+	fn std_read_until_sophisticated_2(b: &mut Bencher) {
+		std_read_until_sophisticated(b, 2)
+	}
+	#[bench]
+	fn std_read_until_sophisticated_3(b: &mut Bencher) {
+		std_read_until_sophisticated(b, 3)
 	}
 
 	// this is obviously slow due to utf8 validation
