@@ -295,6 +295,7 @@ mod bench_read_until {
 	use super::*;
 	use std::io::{BufRead, BufReader};
 	use fnv::FnvHashMap;
+	use memchr::memchr_iter;
 
 	fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 		b.iter(|| {
@@ -432,14 +433,25 @@ mod bench_read_until {
 	fn baseline_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
 		b.iter(|| {
 			let mut map = map(cap);
-			let mut words = WORDS.split(|&c| c == b'\n');
-			for line in words {
+			// I tried .peekable(), but .peek() inside a loop ends up making two mutable refs (E0499),
+			// so instead of hacking own loop with .next()/.peek() I just wrote C-style thing with mutable vars
+			let mut words = memchr_iter(b'\n', WORDS);
+			let mut start = 0;
+			loop {
+				let end = match words.next() {
+					Some(n) => n,
+					None => break,
+				};
+				let line = &WORDS[start..end];
+
 				// .entry() does not accept Borrow<K>, hence this
 				let p = prefix(&line, n);
 				match map.get_mut(p) {
 					Some(v) => { *v += 1; },
 					None => { map.insert(p.to_vec(), 1); },
 				}
+
+				start = end + 1;
 			}
 		})
 	}
