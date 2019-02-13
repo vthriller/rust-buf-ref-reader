@@ -38,6 +38,9 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	pub fn increment(mut self, incr: usize) -> Self {
+		if incr == 0 {
+			panic!("non-positive buffer increments requested")
+		}
 		self.incr = incr;
 		self
 	}
