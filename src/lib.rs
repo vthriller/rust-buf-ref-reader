@@ -1,10 +1,8 @@
 #![feature(copy_within)]
 #![feature(test)]
-#![feature(slice_internals)]
 
 use std::io::{Read, Result};
-//use memchr::memchr;
-use core::slice::memchr::memchr;
+use memchr::memchr;
 
 pub struct BufRefReader<R> {
 	src: R,
