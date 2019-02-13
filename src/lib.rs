@@ -335,6 +335,10 @@ mod bench_read_until {
 	fn bufref_sophisticated_3(b: &mut Bencher) {
 		bufref_sophisticated(b, 3)
 	}
+	#[bench]
+	fn bufref_sophisticated_4(b: &mut Bencher) {
+		bufref_sophisticated(b, 4)
+	}
 
 	fn std_read_until_sophisticated(b: &mut Bencher, n: usize) {
 		b.iter(|| {
@@ -358,6 +362,10 @@ mod bench_read_until {
 	#[bench]
 	fn std_read_until_sophisticated_3(b: &mut Bencher) {
 		std_read_until_sophisticated(b, 3)
+	}
+	#[bench]
+	fn std_read_until_sophisticated_4(b: &mut Bencher) {
+		std_read_until_sophisticated(b, 4)
 	}
 
 	// this is obviously slow due to utf8 validation
