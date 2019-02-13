@@ -65,7 +65,8 @@ impl<R: Read> BufRefReader<R> {
 			.create()
 	}
 
-	// returns Some(where appended data starts), or None for EOF
+	// returns Some(where appended data starts within the filled part of the buffer),
+	// or None for EOF
 	fn fill(&mut self) -> Result<Option<usize>> {
 		if self.start == 0 && self.end == self.buf.len() {
 			// this buffer is already full, expand
@@ -87,7 +88,7 @@ impl<R: Read> BufRefReader<R> {
 			0 => Ok(None), // EOF
 			n => {
 				self.end += n;
-				Ok(Some(old_end))
+				Ok(Some(old_end - self.start))
 			}
 		}
 	}
