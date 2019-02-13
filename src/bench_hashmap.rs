@@ -14,8 +14,9 @@ $ for i in {2..4}; do cut -c-$i < words | sort -u | wc -l; done
 716
 6395
 27638
+64410
 
-That's 0.3%, 2.7%, 11.8% of lines that cause allocations upon introduction into the HashMap.
+That's 0.3%, 2.7%, 11.8%, 27.4% of lines that cause allocations upon introduction into the HashMap.
 */
 
 #[inline]
@@ -50,9 +51,11 @@ fn bufref(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 #[bench] fn bufref_4k_2(b: &mut Bencher) { bufref(b, 4096, 2, 750) }
 #[bench] fn bufref_4k_3(b: &mut Bencher) { bufref(b, 4096, 3, 6500) }
 #[bench] fn bufref_4k_4(b: &mut Bencher) { bufref(b, 4096, 4, 28000) }
+#[bench] fn bufref_4k_5(b: &mut Bencher) { bufref(b, 4096, 5, 65000) }
 #[bench] fn bufref_64k_2(b: &mut Bencher) { bufref(b, 65536, 2, 750) }
 #[bench] fn bufref_64k_3(b: &mut Bencher) { bufref(b, 65536, 3, 6500) }
 #[bench] fn bufref_64k_4(b: &mut Bencher) { bufref(b, 65536, 4, 28000) }
+#[bench] fn bufref_64k_5(b: &mut Bencher) { bufref(b, 65536, 5, 65000) }
 
 fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 	b.iter(|| {
@@ -72,9 +75,11 @@ fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 #[bench] fn std_read_until_4k_2(b: &mut Bencher) { std_read_until(b, 4096, 2, 750) }
 #[bench] fn std_read_until_4k_3(b: &mut Bencher) { std_read_until(b, 4096, 3, 6500) }
 #[bench] fn std_read_until_4k_4(b: &mut Bencher) { std_read_until(b, 4096, 4, 28000) }
+#[bench] fn std_read_until_4k_5(b: &mut Bencher) { std_read_until(b, 4096, 5, 65000) }
 #[bench] fn std_read_until_64k_2(b: &mut Bencher) { std_read_until(b, 65536, 2, 750) }
 #[bench] fn std_read_until_64k_3(b: &mut Bencher) { std_read_until(b, 65536, 3, 6500) }
 #[bench] fn std_read_until_64k_4(b: &mut Bencher) { std_read_until(b, 65536, 4, 28000) }
+#[bench] fn std_read_until_64k_5(b: &mut Bencher) { std_read_until(b, 65536, 5, 65000) }
 
 /*
 this benchmark is solely about measuring code
@@ -107,3 +112,4 @@ fn baseline(b: &mut Bencher, n: usize, cap: usize) {
 #[bench] fn baseline_2(b: &mut Bencher) { baseline(b, 2, 750) }
 #[bench] fn baseline_3(b: &mut Bencher) { baseline(b, 3, 6500) }
 #[bench] fn baseline_4(b: &mut Bencher) { baseline(b, 4, 28000) }
+#[bench] fn baseline_5(b: &mut Bencher) { baseline(b, 5, 65000) }
