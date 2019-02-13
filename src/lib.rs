@@ -371,7 +371,7 @@ mod bench_hashmap {
 		FnvHashMap::with_capacity_and_hasher(cap, Default::default())
 	}
 
-	fn bufref_sophisticated(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
+	fn bufref(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		b.iter(|| {
 			let mut r = BufRefReaderBuilder::new(&WORDS[..])
 				.capacity(buf)
@@ -388,14 +388,14 @@ mod bench_hashmap {
 			}
 		})
 	}
-	#[bench] fn bufref_sophisticated_4k_2(b: &mut Bencher) { bufref_sophisticated(b, 4096, 2, 750) }
-	#[bench] fn bufref_sophisticated_4k_3(b: &mut Bencher) { bufref_sophisticated(b, 4096, 3, 6500) }
-	#[bench] fn bufref_sophisticated_4k_4(b: &mut Bencher) { bufref_sophisticated(b, 4096, 4, 28000) }
-	#[bench] fn bufref_sophisticated_64k_2(b: &mut Bencher) { bufref_sophisticated(b, 65536, 2, 750) }
-	#[bench] fn bufref_sophisticated_64k_3(b: &mut Bencher) { bufref_sophisticated(b, 65536, 3, 6500) }
-	#[bench] fn bufref_sophisticated_64k_4(b: &mut Bencher) { bufref_sophisticated(b, 65536, 4, 28000) }
+	#[bench] fn bufref_4k_2(b: &mut Bencher) { bufref(b, 4096, 2, 750) }
+	#[bench] fn bufref_4k_3(b: &mut Bencher) { bufref(b, 4096, 3, 6500) }
+	#[bench] fn bufref_4k_4(b: &mut Bencher) { bufref(b, 4096, 4, 28000) }
+	#[bench] fn bufref_64k_2(b: &mut Bencher) { bufref(b, 65536, 2, 750) }
+	#[bench] fn bufref_64k_3(b: &mut Bencher) { bufref(b, 65536, 3, 6500) }
+	#[bench] fn bufref_64k_4(b: &mut Bencher) { bufref(b, 65536, 4, 28000) }
 
-	fn std_read_until_sophisticated(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
+	fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		b.iter(|| {
 			let mut map = map(cap);
 			let mut r = BufReader::with_capacity(buf, &WORDS[..]);
@@ -410,14 +410,14 @@ mod bench_hashmap {
 			}
 		})
 	}
-	#[bench] fn std_read_until_sophisticated_4k_2(b: &mut Bencher) { std_read_until_sophisticated(b, 4096, 2, 750) }
-	#[bench] fn std_read_until_sophisticated_4k_3(b: &mut Bencher) { std_read_until_sophisticated(b, 4096, 3, 6500) }
-	#[bench] fn std_read_until_sophisticated_4k_4(b: &mut Bencher) { std_read_until_sophisticated(b, 4096, 4, 28000) }
-	#[bench] fn std_read_until_sophisticated_64k_2(b: &mut Bencher) { std_read_until_sophisticated(b, 65536, 2, 750) }
-	#[bench] fn std_read_until_sophisticated_64k_3(b: &mut Bencher) { std_read_until_sophisticated(b, 65536, 3, 6500) }
-	#[bench] fn std_read_until_sophisticated_64k_4(b: &mut Bencher) { std_read_until_sophisticated(b, 65536, 4, 28000) }
+	#[bench] fn std_read_until_4k_2(b: &mut Bencher) { std_read_until(b, 4096, 2, 750) }
+	#[bench] fn std_read_until_4k_3(b: &mut Bencher) { std_read_until(b, 4096, 3, 6500) }
+	#[bench] fn std_read_until_4k_4(b: &mut Bencher) { std_read_until(b, 4096, 4, 28000) }
+	#[bench] fn std_read_until_64k_2(b: &mut Bencher) { std_read_until(b, 65536, 2, 750) }
+	#[bench] fn std_read_until_64k_3(b: &mut Bencher) { std_read_until(b, 65536, 3, 6500) }
+	#[bench] fn std_read_until_64k_4(b: &mut Bencher) { std_read_until(b, 65536, 4, 28000) }
 
-	fn baseline_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
+	fn baseline(b: &mut Bencher, n: usize, cap: usize) {
 		b.iter(|| {
 			let mut map = map(cap);
 			// I tried .peekable(), but .peek() inside a loop ends up making two mutable refs (E0499),
@@ -442,7 +442,7 @@ mod bench_hashmap {
 			}
 		})
 	}
-	#[bench] fn baseline_sophisticated_2(b: &mut Bencher) { baseline_sophisticated(b, 2, 750) }
-	#[bench] fn baseline_sophisticated_3(b: &mut Bencher) { baseline_sophisticated(b, 3, 6500) }
-	#[bench] fn baseline_sophisticated_4(b: &mut Bencher) { baseline_sophisticated(b, 4, 28000) }
+	#[bench] fn baseline_2(b: &mut Bencher) { baseline(b, 2, 750) }
+	#[bench] fn baseline_3(b: &mut Bencher) { baseline(b, 3, 6500) }
+	#[bench] fn baseline_4(b: &mut Bencher) { baseline(b, 4, 28000) }
 }
