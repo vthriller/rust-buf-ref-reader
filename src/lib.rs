@@ -344,6 +344,18 @@ mod bench_read_until {
 		bufref(b, 4096, 4096)
 	}
 
+	// like read_until_words_long, splits by the most rare character in WORDS
+	#[bench]
+	fn bufref_long(b: &mut Bencher) {
+		b.iter(|| {
+			let mut r = BufRefReaderBuilder::new(&WORDS[..])
+				.capacity(4096)
+				.increment(4096)
+				.create();
+			while r.read_until(b'Q').unwrap() != None {}
+		})
+	}
+
 	fn std_read_until(b: &mut Bencher, cap: usize) {
 		b.iter(|| {
 			let mut r = BufReader::with_capacity(cap, &WORDS[..]);
