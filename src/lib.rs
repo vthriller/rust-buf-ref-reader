@@ -189,6 +189,29 @@ mod tests {
 		assert_eq!(r.read(1024).unwrap(), Some(&b" dolor sit amet"[..]));
 		assert_eq!(r.read(1).unwrap(), None);
 	}
+
+	fn read_words(cap: usize, incr: usize, read: usize) {
+		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+			.capacity(cap)
+			.increment(incr)
+			.create();
+		let mut words = WORDS.chunks(read);
+		while let Ok(Some(slice_buf)) = r.read(read) {
+			let slice_words = words.next().unwrap();
+			assert_eq!(slice_buf, slice_words);
+		}
+		assert_eq!(words.next(), None);
+	}
+
+	#[test]
+	fn read_words_4x4x3() {
+		read_words(4, 4, 3)
+	}
+
+	#[test]
+	fn read_words_4x4x5() {
+		read_words(4, 4, 5)
+	}
 }
 
 #[cfg(test)]
