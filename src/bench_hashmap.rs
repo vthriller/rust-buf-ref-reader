@@ -79,8 +79,22 @@ fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 fn baseline(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut map = map(cap);
-		// I tried .peekable(), but .peek() inside a loop ends up making two mutable refs (E0499),
-		// so instead of hacking own loop with .next()/.peek() I just wrote C-style thing with mutable vars
+		/*
+		I tried .peekable(), but .peek() inside a loop ends up making two mutable refs (E0499),
+		so instead of hacking own loop with .next()/.peek() I just wrote C-style thing with mutable vars.
+
+		Another option is to
+
+		let mut words: Vec<usize> = memchr_iter(b'\n', WORDS)
+			.collect(); // can't clone Memchr iterator itself, hence this
+		let mut starts = vec![0].into_iter()
+			.chain(words.clone().into_iter().map(|n| n+1));
+		let mut ends = words.into_iter()
+			.chain(vec![WORDS.len()].into_iter());
+
+		to get (start, end) pairs to use directly in a slice;
+		this, however, results in a massive performance hit (20% to 30%).
+		*/
 		let mut words = memchr_iter(b'\n', WORDS);
 		let mut start = 0;
 		loop {
