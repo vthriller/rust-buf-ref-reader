@@ -179,6 +179,25 @@ mod tests {
 	}
 
 	#[test]
+	fn read_until_words() {
+		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+			.capacity(4)
+			.increment(4)
+			.create();
+		let mut words = WORDS.split(|&c| c == b'\n');
+		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
+			let slice_words = words.next().unwrap();
+			assert_eq!(slice_buf, slice_words);
+		}
+
+		// reader: returned immediately after hitting EOF past last b'\n'
+		// words: this is .split(), hence empty string past last b'\n'
+		assert_eq!(words.next(), Some(&b""[..]));
+
+		assert_eq!(words.next(), None);
+	}
+
+	#[test]
 	fn read() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
