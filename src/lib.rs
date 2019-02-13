@@ -129,15 +129,21 @@ impl<R: Read> BufRefReader<R> {
 	/// Returns bytes until `delim` or EOF is reached. If no content available, returns `None`.
 	pub fn read_until(&mut self, delim: u8) -> Result<Option<&[u8]>> {
 		let mut len = None;
+		// position within filled part of the buffer,
+		// from which to continue search for character
+		let mut pos = 0;
 		loop {
 			// fill and expand buffer until either:
 			// - `delim` appears in the buffer
 			// - EOF is reached
-			if let Some(n) = memchr(delim, filled!(self)) {
-				len = Some(n);
+			if let Some(n) = memchr(delim, &filled!(self)[pos..]) {
+				len = Some(pos+n);
 				break;
 			}
-			if self.fill()?.is_none() { break };
+			pos = match self.fill()? {
+				None => break, // EOF
+				Some(pos) => pos,
+			};
 		}
 
 		match len {
