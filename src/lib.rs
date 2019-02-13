@@ -157,6 +157,9 @@ impl<R: Read> BufRefReader<R> {
 }
 
 #[cfg(test)]
+static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
+
+#[cfg(test)]
 mod tests {
 	use super::*;
 
@@ -194,8 +197,6 @@ mod bench_read {
 	use test::Bencher;
 	use super::*;
 	use std::io::BufReader;
-
-	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
 	fn bufref(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		b.iter(|| {
@@ -252,8 +253,6 @@ mod bench_read_until {
 	use super::*;
 	use std::io::{BufRead, BufReader};
 	use fnv::FnvHashMap;
-
-	static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
 	fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 		b.iter(|| {
