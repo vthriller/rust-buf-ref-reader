@@ -439,6 +439,18 @@ mod bench_read_until {
 	fn bufref_sophisticated_4k_4(b: &mut Bencher) {
 		bufref_sophisticated(b, 4096, 4, 28000)
 	}
+	#[bench]
+	fn bufref_sophisticated_64k_2(b: &mut Bencher) {
+		bufref_sophisticated(b, 65536, 2, 750)
+	}
+	#[bench]
+	fn bufref_sophisticated_64k_3(b: &mut Bencher) {
+		bufref_sophisticated(b, 65536, 3, 6500)
+	}
+	#[bench]
+	fn bufref_sophisticated_64k_4(b: &mut Bencher) {
+		bufref_sophisticated(b, 65536, 4, 28000)
+	}
 
 	fn std_read_until_sophisticated(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		b.iter(|| {
@@ -466,6 +478,18 @@ mod bench_read_until {
 	#[bench]
 	fn std_read_until_sophisticated_4k_4(b: &mut Bencher) {
 		std_read_until_sophisticated(b, 4096, 4, 28000)
+	}
+	#[bench]
+	fn std_read_until_sophisticated_64k_2(b: &mut Bencher) {
+		std_read_until_sophisticated(b, 65536, 2, 750)
+	}
+	#[bench]
+	fn std_read_until_sophisticated_64k_3(b: &mut Bencher) {
+		std_read_until_sophisticated(b, 65536, 3, 6500)
+	}
+	#[bench]
+	fn std_read_until_sophisticated_64k_4(b: &mut Bencher) {
+		std_read_until_sophisticated(b, 65536, 4, 28000)
 	}
 
 	fn baseline_sophisticated(b: &mut Bencher, n: usize, cap: usize) {
