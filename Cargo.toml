@@ -5,7 +5,8 @@ authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-memchr = "2"
+# TODO configurable?
+memchr = { version = "2", default-features = false, features = ["libc"]}
 
 [dev-dependencies]
 fnv = "1"
