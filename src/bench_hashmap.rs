@@ -19,6 +19,8 @@ $ for i in {2..4}; do cut -c-$i < words | sort -u | wc -l; done
 That's 0.3%, 2.7%, 11.8%, 27.4% of lines that cause allocations upon introduction into the HashMap.
 */
 
+static BUFSIZE: usize = 64*1024;
+
 #[inline]
 fn prefix(s: &[u8], n: usize) -> &[u8] {
 	&s[ .. std::cmp::min(s.len(), n) ]
@@ -31,11 +33,11 @@ fn map(cap: usize) -> FnvHashMap<Vec<u8>, usize> {
 	FnvHashMap::with_capacity_and_hasher(cap, Default::default())
 }
 
-fn bufref(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
+fn bufref(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
-			.capacity(buf)
-			.increment(buf)
+			.capacity(BUFSIZE)
+			.increment(BUFSIZE)
 			.create();
 		let mut map = map(cap);
 		while let Some(line) = r.read_until(b'\n').unwrap() {
@@ -48,15 +50,15 @@ fn bufref(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn bufref_64k_2(b: &mut Bencher) { bufref(b, 65536, 2, 750) }
-#[bench] fn bufref_64k_3(b: &mut Bencher) { bufref(b, 65536, 3, 6500) }
-#[bench] fn bufref_64k_4(b: &mut Bencher) { bufref(b, 65536, 4, 28000) }
-#[bench] fn bufref_64k_5(b: &mut Bencher) { bufref(b, 65536, 5, 65000) }
+#[bench] fn bufref_64k_2(b: &mut Bencher) { bufref(b, 2, 750) }
+#[bench] fn bufref_64k_3(b: &mut Bencher) { bufref(b, 3, 6500) }
+#[bench] fn bufref_64k_4(b: &mut Bencher) { bufref(b, 4, 28000) }
+#[bench] fn bufref_64k_5(b: &mut Bencher) { bufref(b, 5, 65000) }
 
-fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
+fn std_read_until(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut map = map(cap);
-		let mut r = BufReader::with_capacity(buf, &WORDS[..]);
+		let mut r = BufReader::with_capacity(BUFSIZE, &WORDS[..]);
 		let mut buf = vec![];
 		while r.read_until(b'\n', &mut buf).unwrap() != 0 {
 			// .entry() does not accept Borrow<K>, hence this
@@ -69,10 +71,10 @@ fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn std_read_until_64k_2(b: &mut Bencher) { std_read_until(b, 65536, 2, 750) }
-#[bench] fn std_read_until_64k_3(b: &mut Bencher) { std_read_until(b, 65536, 3, 6500) }
-#[bench] fn std_read_until_64k_4(b: &mut Bencher) { std_read_until(b, 65536, 4, 28000) }
-#[bench] fn std_read_until_64k_5(b: &mut Bencher) { std_read_until(b, 65536, 5, 65000) }
+#[bench] fn std_read_until_64k_2(b: &mut Bencher) { std_read_until(b, 2, 750) }
+#[bench] fn std_read_until_64k_3(b: &mut Bencher) { std_read_until(b, 3, 6500) }
+#[bench] fn std_read_until_64k_4(b: &mut Bencher) { std_read_until(b, 4, 28000) }
+#[bench] fn std_read_until_64k_5(b: &mut Bencher) { std_read_until(b, 5, 65000) }
 
 /*
 this benchmark is solely about measuring code
