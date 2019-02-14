@@ -50,10 +50,10 @@ fn bufref(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn bufref_64k_2(b: &mut Bencher) { bufref(b, 2, 750) }
-#[bench] fn bufref_64k_3(b: &mut Bencher) { bufref(b, 3, 6500) }
-#[bench] fn bufref_64k_4(b: &mut Bencher) { bufref(b, 4, 28000) }
-#[bench] fn bufref_64k_5(b: &mut Bencher) { bufref(b, 5, 65000) }
+#[bench] fn bufref_2(b: &mut Bencher) { bufref(b, 2, 750) }
+#[bench] fn bufref_3(b: &mut Bencher) { bufref(b, 3, 6500) }
+#[bench] fn bufref_4(b: &mut Bencher) { bufref(b, 4, 28000) }
+#[bench] fn bufref_5(b: &mut Bencher) { bufref(b, 5, 65000) }
 
 fn std_read_until(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
@@ -71,10 +71,10 @@ fn std_read_until(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn std_read_until_64k_2(b: &mut Bencher) { std_read_until(b, 2, 750) }
-#[bench] fn std_read_until_64k_3(b: &mut Bencher) { std_read_until(b, 3, 6500) }
-#[bench] fn std_read_until_64k_4(b: &mut Bencher) { std_read_until(b, 4, 28000) }
-#[bench] fn std_read_until_64k_5(b: &mut Bencher) { std_read_until(b, 5, 65000) }
+#[bench] fn std_read_until_2(b: &mut Bencher) { std_read_until(b, 2, 750) }
+#[bench] fn std_read_until_3(b: &mut Bencher) { std_read_until(b, 3, 6500) }
+#[bench] fn std_read_until_4(b: &mut Bencher) { std_read_until(b, 4, 28000) }
+#[bench] fn std_read_until_5(b: &mut Bencher) { std_read_until(b, 5, 65000) }
 
 /*
 this benchmark is solely about measuring code
