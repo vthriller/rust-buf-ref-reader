@@ -47,7 +47,7 @@ fn bufref(b: &mut Bencher, n: usize, cap: usize) {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(BUFSIZE)
 			.increment(BUFSIZE)
-			.create();
+			.build();
 		let mut map = map(cap);
 		while let Some(line) = r.read_until(b'\n').unwrap() {
 			let p = prefix(&line, n);

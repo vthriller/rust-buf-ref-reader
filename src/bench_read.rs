@@ -8,7 +8,7 @@ fn bufref(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
 			.increment(incr)
-			.create();
+			.build();
 		while r.read(read).unwrap() != None {}
 	})
 }

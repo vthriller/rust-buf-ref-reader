@@ -45,7 +45,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		self
 	}
 
-	pub fn create(self) -> BufRefReader<R> {
+	pub fn build(self) -> BufRefReader<R> {
 		let mut buf = Vec::with_capacity(self.bufsize);
 		unsafe { buf.set_len(self.bufsize); }
 
@@ -62,7 +62,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 impl<R: Read> BufRefReader<R> {
 	pub fn new(src: R) -> BufRefReader<R> {
 		BufRefReaderBuilder::new(src)
-			.create()
+			.build()
 	}
 
 	// returns Some(where appended data starts within the filled part of the buffer),
@@ -177,7 +177,7 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
 			.increment(4)
-			.create();
+			.build();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"dolor"[..]));
@@ -192,7 +192,7 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(4)
 			.increment(4)
-			.create();
+			.build();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
 			let slice_words = words.next().unwrap();
@@ -213,7 +213,7 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(32)
 			.increment(32)
-			.create();
+			.build();
 		let mut words = WORDS.split(|&c| c == b'Q');
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
 			let slice_words = words.next().unwrap();
@@ -228,7 +228,7 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
 			.increment(4)
-			.create();
+			.build();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
 		assert_eq!(r.read(1024).unwrap(), Some(&b" dolor sit amet"[..]));
@@ -239,7 +239,7 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
 			.increment(incr)
-			.create();
+			.build();
 		let mut words = WORDS.chunks(read);
 		while let Ok(Some(slice_buf)) = r.read(read) {
 			let slice_words = words.next().unwrap();
