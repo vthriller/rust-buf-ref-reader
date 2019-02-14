@@ -69,6 +69,7 @@ fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 				Some(v) => { *v += 1; },
 				None => { map.insert(p.to_vec(), 1); },
 			}
+			buf.clear();
 		}
 	})
 }
