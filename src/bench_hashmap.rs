@@ -33,6 +33,15 @@ fn map(cap: usize) -> FnvHashMap<Vec<u8>, usize> {
 	FnvHashMap::with_capacity_and_hasher(cap, Default::default())
 }
 
+#[inline]
+fn insert(map: &mut FnvHashMap<Vec<u8>, usize>, key: &[u8]) {
+	// .entry() does not accept Borrow<K>, hence this
+	match map.get_mut(key) {
+		Some(v) => { *v += 1; },
+		None => { map.insert(key.to_vec(), 1); },
+	}
+}
+
 fn bufref(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
@@ -41,12 +50,8 @@ fn bufref(b: &mut Bencher, n: usize, cap: usize) {
 			.create();
 		let mut map = map(cap);
 		while let Some(line) = r.read_until(b'\n').unwrap() {
-			// .entry() does not accept Borrow<K>, hence this
 			let p = prefix(&line, n);
-			match map.get_mut(p) {
-				Some(v) => { *v += 1; },
-				None => { map.insert(p.to_vec(), 1); },
-			}
+			insert(&mut map, p);
 		}
 	})
 }
@@ -61,12 +66,8 @@ fn std_read_until(b: &mut Bencher, n: usize, cap: usize) {
 		let mut r = BufReader::with_capacity(BUFSIZE, &WORDS[..]);
 		let mut buf = vec![];
 		while r.read_until(b'\n', &mut buf).unwrap() != 0 {
-			// .entry() does not accept Borrow<K>, hence this
 			let p = prefix(&buf, n);
-			match map.get_mut(p) {
-				Some(v) => { *v += 1; },
-				None => { map.insert(p.to_vec(), 1); },
-			}
+			insert(&mut map, p);
 			buf.clear();
 		}
 	})
@@ -95,12 +96,8 @@ fn baseline(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut map = map(cap);
 		for &line in lines.iter() {
-			// .entry() does not accept Borrow<K>, hence this
 			let p = prefix(&line, n);
-			match map.get_mut(p) {
-				Some(v) => { *v += 1; },
-				None => { map.insert(p.to_vec(), 1); },
-			}
+			insert(&mut map, p);
 		}
 	})
 }
