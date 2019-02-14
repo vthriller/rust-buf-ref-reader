@@ -48,10 +48,6 @@ fn bufref(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn bufref_4k_2(b: &mut Bencher) { bufref(b, 4096, 2, 750) }
-#[bench] fn bufref_4k_3(b: &mut Bencher) { bufref(b, 4096, 3, 6500) }
-#[bench] fn bufref_4k_4(b: &mut Bencher) { bufref(b, 4096, 4, 28000) }
-#[bench] fn bufref_4k_5(b: &mut Bencher) { bufref(b, 4096, 5, 65000) }
 #[bench] fn bufref_64k_2(b: &mut Bencher) { bufref(b, 65536, 2, 750) }
 #[bench] fn bufref_64k_3(b: &mut Bencher) { bufref(b, 65536, 3, 6500) }
 #[bench] fn bufref_64k_4(b: &mut Bencher) { bufref(b, 65536, 4, 28000) }
@@ -73,10 +69,6 @@ fn std_read_until(b: &mut Bencher, buf: usize, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn std_read_until_4k_2(b: &mut Bencher) { std_read_until(b, 4096, 2, 750) }
-#[bench] fn std_read_until_4k_3(b: &mut Bencher) { std_read_until(b, 4096, 3, 6500) }
-#[bench] fn std_read_until_4k_4(b: &mut Bencher) { std_read_until(b, 4096, 4, 28000) }
-#[bench] fn std_read_until_4k_5(b: &mut Bencher) { std_read_until(b, 4096, 5, 65000) }
 #[bench] fn std_read_until_64k_2(b: &mut Bencher) { std_read_until(b, 65536, 2, 750) }
 #[bench] fn std_read_until_64k_3(b: &mut Bencher) { std_read_until(b, 65536, 3, 6500) }
 #[bench] fn std_read_until_64k_4(b: &mut Bencher) { std_read_until(b, 65536, 4, 28000) }
