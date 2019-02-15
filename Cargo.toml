@@ -1,7 +1,7 @@
 [package]
 name = "buf-ref-reader"
 description = "Faster, growable buffering reader for when there's little to no need to modify data, nor to keep it alive past next read."
-version = "0.1.0"
+version = "0.2.0"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
 repository = "https://github.com/vthriller/rust-buf-ref-reader"
 license = "Apache-2.0"
