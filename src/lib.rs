@@ -48,11 +48,12 @@ assert_eq!(r.read_until(b' ')?, None);
 */
 
 #![warn(missing_docs)]
-#![feature(copy_within)]
 #![feature(test)]
 
 use std::io::{Read, Result};
 use memchr::memchr;
+// https://github.com/rust-lang/rust/issues/54236
+use copy_in_place::*;
 
 /**
 Buffering reader.
@@ -140,7 +141,8 @@ impl<R: Read> BufRefReader<R> {
 		} else {
 			// reallocate and fill existing buffer
 			if self.end - self.start != 0 {
-				self.buf.copy_within(self.start..self.end, 0)
+				//self.buf.copy_within(self.start..self.end, 0)
+				copy_in_place(&mut self.buf, self.start..self.end, 0)
 			}
 			// (A)..(A+B) → 0..B
 			self.end -= self.start;
