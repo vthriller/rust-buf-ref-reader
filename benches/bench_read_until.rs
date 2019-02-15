@@ -1,0 +1,64 @@
+use bencher::{Bencher, benchmark_group, benchmark_main};
+
+use buf_ref_reader::*;
+use std::io::{BufRead, BufReader};
+
+static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
+
+fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
+	b.iter(|| {
+		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+			.capacity(cap)
+			.increment(incr)
+			.build();
+		while r.read_until(b'\n').unwrap() != None {}
+	})
+}
+fn bufref_read_until_16x16(b: &mut Bencher) { bufref(b, 16, 16) }
+fn bufref_read_until_64x16(b: &mut Bencher) { bufref(b, 64, 16) }
+fn bufref_read_until_64x64(b: &mut Bencher) { bufref(b, 64, 64) }
+fn bufref_read_until_4kx4k(b: &mut Bencher) { bufref(b, 4096, 4096) }
+
+fn std_read_until(b: &mut Bencher, cap: usize) {
+	b.iter(|| {
+		let mut r = BufReader::with_capacity(cap, &WORDS[..]);
+		let mut buf = vec![];
+		while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
+	})
+}
+fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
+fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
+fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
+
+// like read_until_words_long test, split by the most rare character in WORDS:
+
+fn bufref_read_until_long(b: &mut Bencher) {
+	b.iter(|| {
+		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+			.capacity(4096)
+			.increment(4096)
+			.build();
+		while r.read_until(b'Q').unwrap() != None {}
+	})
+}
+
+fn std_read_until_long(b: &mut Bencher) {
+	b.iter(|| {
+		let mut r = BufReader::with_capacity(4096, &WORDS[..]);
+		let mut buf = vec![];
+		while r.read_until(b'Q', &mut buf).unwrap() != 0 {}
+	})
+}
+
+benchmark_group!(benches,
+	bufref_read_until_16x16,
+	bufref_read_until_64x16,
+	bufref_read_until_64x64,
+	bufref_read_until_4kx4k,
+	std_read_until_16,
+	std_read_until_64,
+	std_read_until_4k,
+	bufref_read_until_long,
+	std_read_until_long,
+);
+benchmark_main!(benches);

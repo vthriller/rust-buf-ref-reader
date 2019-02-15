@@ -48,7 +48,6 @@ assert_eq!(r.read_until(b' ')?, None);
 */
 
 #![warn(missing_docs)]
-#![feature(test)]
 
 use std::io::{Read, Result};
 use memchr::memchr;
@@ -344,8 +343,3 @@ mod tests {
 		read_words(4, 4, 5)
 	}
 }
-
-#[cfg(test)] mod bench_read;
-#[cfg(test)] mod bench_read_until;
-#[cfg(test)] mod bench_hashmap;
-

@@ -1,9 +1,11 @@
-extern crate test;
-use test::Bencher;
-use super::*;
+use bencher::{Bencher, benchmark_group, benchmark_main};
+
+use buf_ref_reader::*;
 use std::io::{BufRead, BufReader};
 use fnv::FnvHashMap;
 use memchr::memchr_iter;
+
+static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
 /*
 With GNU's miscfiles-1.5 web2 as a words file:
@@ -42,7 +44,7 @@ fn insert(map: &mut FnvHashMap<Vec<u8>, usize>, key: &[u8]) {
 	}
 }
 
-fn bufref(b: &mut Bencher, n: usize, cap: usize) {
+fn bufref_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(BUFSIZE)
@@ -55,12 +57,12 @@ fn bufref(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn bufref_2(b: &mut Bencher) { bufref(b, 2, 750) }
-#[bench] fn bufref_3(b: &mut Bencher) { bufref(b, 3, 6500) }
-#[bench] fn bufref_4(b: &mut Bencher) { bufref(b, 4, 28000) }
-#[bench] fn bufref_5(b: &mut Bencher) { bufref(b, 5, 65000) }
+fn bufref_hashmap_2(b: &mut Bencher) { bufref_hashmap(b, 2, 750) }
+fn bufref_hashmap_3(b: &mut Bencher) { bufref_hashmap(b, 3, 6500) }
+fn bufref_hashmap_4(b: &mut Bencher) { bufref_hashmap(b, 4, 28000) }
+fn bufref_hashmap_5(b: &mut Bencher) { bufref_hashmap(b, 5, 65000) }
 
-fn std_read_until(b: &mut Bencher, n: usize, cap: usize) {
+fn std_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut map = map(cap);
 		let mut r = BufReader::with_capacity(BUFSIZE, &WORDS[..]);
@@ -72,17 +74,17 @@ fn std_read_until(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn std_read_until_2(b: &mut Bencher) { std_read_until(b, 2, 750) }
-#[bench] fn std_read_until_3(b: &mut Bencher) { std_read_until(b, 3, 6500) }
-#[bench] fn std_read_until_4(b: &mut Bencher) { std_read_until(b, 4, 28000) }
-#[bench] fn std_read_until_5(b: &mut Bencher) { std_read_until(b, 5, 65000) }
+fn std_hashmap_2(b: &mut Bencher) { std_hashmap(b, 2, 750) }
+fn std_hashmap_3(b: &mut Bencher) { std_hashmap(b, 3, 6500) }
+fn std_hashmap_4(b: &mut Bencher) { std_hashmap(b, 4, 28000) }
+fn std_hashmap_5(b: &mut Bencher) { std_hashmap(b, 5, 65000) }
 
 /*
 this benchmark is solely about measuring code
 that populates HashMap with occasional copies of references to slices of WORDS,
 hence collection of such slices outside the bench loop
 */
-fn baseline(b: &mut Bencher, n: usize, cap: usize) {
+fn baseline_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	let words: Vec<usize> = memchr_iter(b'\n', WORDS)
 		.collect(); // can't clone Memchr iterator itself, hence this
 	let starts = vec![0].into_iter()
@@ -101,7 +103,23 @@ fn baseline(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-#[bench] fn baseline_2(b: &mut Bencher) { baseline(b, 2, 750) }
-#[bench] fn baseline_3(b: &mut Bencher) { baseline(b, 3, 6500) }
-#[bench] fn baseline_4(b: &mut Bencher) { baseline(b, 4, 28000) }
-#[bench] fn baseline_5(b: &mut Bencher) { baseline(b, 5, 65000) }
+fn baseline_hashmap_2(b: &mut Bencher) { baseline_hashmap(b, 2, 750) }
+fn baseline_hashmap_3(b: &mut Bencher) { baseline_hashmap(b, 3, 6500) }
+fn baseline_hashmap_4(b: &mut Bencher) { baseline_hashmap(b, 4, 28000) }
+fn baseline_hashmap_5(b: &mut Bencher) { baseline_hashmap(b, 5, 65000) }
+
+benchmark_group!(benches,
+	bufref_hashmap_2,
+	bufref_hashmap_3,
+	bufref_hashmap_4,
+	bufref_hashmap_5,
+	std_hashmap_2,
+	std_hashmap_3,
+	std_hashmap_4,
+	std_hashmap_5,
+	baseline_hashmap_2,
+	baseline_hashmap_3,
+	baseline_hashmap_4,
+	baseline_hashmap_5,
+);
+benchmark_main!(benches);

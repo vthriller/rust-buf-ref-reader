@@ -15,6 +15,7 @@ copy_in_place = "0.2"
 
 [dev-dependencies]
 fnv = "1"
+bencher = "0.1"
 
 # use libc's memchr to make comparison with BufReader fair
 # as of 1.32.0:
@@ -22,3 +23,15 @@ fnv = "1"
 # - std::memchr::memchr just calls sys::memchr::memchr…
 # - …which, at least on unix, is just a thin layer upon libc::memchr.
 memchr = { version = "2", default-features = false, features = ["libc"]}
+
+[[bench]]
+name = "bench_hashmap"
+harness = false
+
+[[bench]]
+name = "bench_read"
+harness = false
+
+[[bench]]
+name = "bench_read_until"
+harness = false
