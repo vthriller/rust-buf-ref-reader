@@ -255,6 +255,23 @@ mod tests {
 	use super::*;
 
 	#[test]
+	fn read_until_empty_lines() {
+		// two spaces, three spaces, two spaces
+		let mut r = BufRefReaderBuilder::new(&b"  lorem   ipsum  "[..])
+			.capacity(4)
+			.increment(4)
+			.build();
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), None);
+	}
+
+	#[test]
 	fn read_until_words() {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(4)
