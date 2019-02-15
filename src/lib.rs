@@ -170,7 +170,7 @@ impl<R: Read> BufRefReader<R> {
 	*/
 
 	/**
-	Returns requested amount of bytes, or less if EOF prevents reader from do.
+	Returns requested amount of bytes, or less if EOF prevents reader from fulfilling the request.
 
 	Returns:
 
