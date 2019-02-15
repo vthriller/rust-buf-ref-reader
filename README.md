@@ -16,3 +16,7 @@ namely after applying [first Futamura projection](https://en.wikipedia.org/wiki/
 which in turn was done to study mawk's exceptionally good performance.
 
 See [source code for `FINgets()`](https://github.com/ThomasDickey/mawk-20140914/blob/1d2b180d760ddb9d967ff377d9fe21fd4eb9cda5/fin.c#L212) to learn how mawk buffers its input.
+
+## License
+
+[Apache License 2.0](https://spdx.org/licenses/Apache-2.0.html)
