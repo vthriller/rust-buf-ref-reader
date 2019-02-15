@@ -1,7 +1,9 @@
 [package]
 name = "buf-ref-reader"
+description = "Faster, growable buffering reader for when there's little to no need to modify data, nor to keep it alive past next read."
 version = "0.1.0"
 authors = ["vthriller <unixway.drive+rs@gmail.com>"]
+readme = "README.md"
 edition = "2018"
 
 [dependencies]

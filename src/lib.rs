@@ -1,9 +1,37 @@
+/*!
+Faster, growable buffering reader for when there's little to no need to modify data, nor to keep it alive past next read.
+
+`std::io::BufReader` works by copying data from its internal buffer into user-provided `Vec`/`String`,
+or, in case of `.lines()`, by emitting new heap-allocated `String` for each iteration.
+While convenient and versatile, this is not the fastest approach.
+
+Instead, `BufRefReader` references its internal buffer with each read, returning `&[u8]`.
+Lack of extra allocations yields better read performance in situations where most (if not all) of read data:
+
+- requires no modifications,
+- is never used outside of a loop body and does not need to be duplicated into the heap for future use.
+
+While being more performant, this approach also severely limits applicability of this reader:
+
+- it does not (and cannot) implement `BufRead` and cannot be used as a direct replacement for `BufReader`;
+- returned values are only valid between calls to reading functions (i.e. they cannot outlive even a single loop cycle), and Rust's borrow checker will prevent you from using stale references;
+- consequently, `BufRefReader` cannot be turned into an `Iterator` (here's an easy way to think about it: what would `Iterator::collect()` return?);
+- returned references are immutable;
+- obviously, there's also nothing that can return `String`s or `&str`s for you.
+*/
+
+#![warn(missing_docs)]
 #![feature(copy_within)]
 #![feature(test)]
 
 use std::io::{Read, Result};
 use memchr::memchr;
 
+/**
+Buffering reader.
+
+See [module-level docs](index.html) for examples.
+*/
 pub struct BufRefReader<R> {
 	src: R,
 	buf: Vec<u8>,
@@ -18,12 +46,18 @@ macro_rules! filled {
 	($self:ident) => (&$self.buf[ $self.start .. $self.end ])
 }
 
+/**
+Builder for [`BufRefReader`](struct.BufRefReader.html).
+
+See [module-level docs](index.html) for examples.
+*/
 pub struct BufRefReaderBuilder<R> {
 	src: R,
 	bufsize: usize,
 	incr: usize,
 }
 impl<R: Read> BufRefReaderBuilder<R> {
+	/// Creates new builder with given reader and default options.
 	pub fn new(src: R) -> Self {
 		BufRefReaderBuilder {
 			src,
@@ -32,11 +66,13 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		}
 	}
 
+	/// Set initial buffer capacity.
 	pub fn capacity(mut self, bufsize: usize) -> Self {
 		self.bufsize = bufsize;
 		self
 	}
 
+	/// Set buffer increments for when requested data does not fit into already existing buffer.
 	pub fn increment(mut self, incr: usize) -> Self {
 		if incr == 0 {
 			panic!("non-positive buffer increments requested")
@@ -45,6 +81,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		self
 	}
 
+	/// Create actual reader.
 	pub fn build(self) -> BufRefReader<R> {
 		let mut buf = Vec::with_capacity(self.bufsize);
 		unsafe { buf.set_len(self.bufsize); }
@@ -60,6 +97,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 
 
 impl<R: Read> BufRefReader<R> {
+	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
 	pub fn new(src: R) -> BufRefReader<R> {
 		BufRefReaderBuilder::new(src)
 			.build()
@@ -104,6 +142,15 @@ impl<R: Read> BufRefReader<R> {
 	}
 	*/
 
+	/**
+	Returns requested amount of bytes, or less if EOF prevents reader from do.
+
+	Returns:
+
+	- `Ok(Some(data))` with, well, data,
+	- `Ok(None)` if no more data is available,
+	- `Err(err)`: see `std::io::Read::read()`
+	*/
 	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>> {
 		while n > self.end - self.start {
 			// fill and expand buffer until either:
@@ -126,7 +173,15 @@ impl<R: Read> BufRefReader<R> {
 		}
 	}
 
-	/// Returns bytes until `delim` or EOF is reached. If no content available, returns `None`.
+	/**
+	Returns bytes until `delim` or EOF is reached. If no content is available, returns `None`.
+
+	Returns:
+
+	- `Ok(Some(data))` with, well, data,
+	- `Ok(None)` if no more data is available,
+	- `Err(err)`: see `std::io::Read::read()`
+	*/
 	pub fn read_until(&mut self, delim: u8) -> Result<Option<&[u8]>> {
 		let mut len = None;
 		// position within filled part of the buffer,
