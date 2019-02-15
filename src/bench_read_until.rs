@@ -17,18 +17,6 @@ fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 #[bench] fn bufref_64x64(b: &mut Bencher) { bufref(b, 64, 64) }
 #[bench] fn bufref_4kx4k(b: &mut Bencher) { bufref(b, 4096, 4096) }
 
-// like read_until_words_long, splits by the most rare character in WORDS
-#[bench]
-fn bufref_long(b: &mut Bencher) {
-	b.iter(|| {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
-			.capacity(4096)
-			.increment(4096)
-			.build();
-		while r.read_until(b'Q').unwrap() != None {}
-	})
-}
-
 fn std_read_until(b: &mut Bencher, cap: usize) {
 	b.iter(|| {
 		let mut r = BufReader::with_capacity(cap, &WORDS[..]);
@@ -40,7 +28,19 @@ fn std_read_until(b: &mut Bencher, cap: usize) {
 #[bench] fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
 #[bench] fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
 
-// like read_until_words_long, splits by the most rare character in WORDS
+// like read_until_words_long test, split by the most rare character in WORDS:
+
+#[bench]
+fn bufref_long(b: &mut Bencher) {
+	b.iter(|| {
+		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+			.capacity(4096)
+			.increment(4096)
+			.build();
+		while r.read_until(b'Q').unwrap() != None {}
+	})
+}
+
 #[bench]
 fn std_read_long(b: &mut Bencher) {
 	b.iter(|| {
