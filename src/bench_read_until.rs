@@ -39,3 +39,13 @@ fn std_read_until(b: &mut Bencher, cap: usize) {
 #[bench] fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
 #[bench] fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
 #[bench] fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
+
+// like read_until_words_long, splits by the most rare character in WORDS
+#[bench]
+fn std_read_long(b: &mut Bencher) {
+	b.iter(|| {
+		let mut r = BufReader::with_capacity(4096, &WORDS[..]);
+		let mut buf = vec![];
+		while r.read_until(b'Q', &mut buf).unwrap() != 0 {}
+	})
+}
