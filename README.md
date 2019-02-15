@@ -7,8 +7,6 @@ the contents of which rarely need to outlive a single loop cycle.
 
 [See rustdoc](https://docs.rs/buf-ref-reader/) for examples and to read more about how this crate works, its applicability and limitations.
 
-Currently this crate only works with rust-nightly.
-
 ## Benchmarks
 
 Reading from `&[u8] as Read` through 4k-sized buffer into the void:
