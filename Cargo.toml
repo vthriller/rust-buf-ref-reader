@@ -9,8 +9,14 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-# TODO configurable?
-memchr = { version = "2", default-features = false, features = ["libc"]}
+memchr = "2"
 
 [dev-dependencies]
 fnv = "1"
+
+# use libc's memchr to make comparison with BufReader fair
+# as of 1.32.0:
+# - modules in std::io import std::memchr::memchr (which is private),
+# - std::memchr::memchr just calls sys::memchr::memchr…
+# - …which, at least on unix, is just a thin layer upon libc::memchr.
+memchr = { version = "2", default-features = false, features = ["libc"]}
