@@ -5,7 +5,7 @@ Faster, growable buffering reader.
 Use this crate to get faster reads in situations when all you need is immutable `&[u8]`s,
 the contents of which rarely need to outlive a single loop cycle.
 
-See rustdoc to read more about how this crate works, its applicability and limitations.
+See rustdoc for examples and to read more about how this crate works, its applicability and limitations.
 
 Currently this crate only works with rust-nightly.
 

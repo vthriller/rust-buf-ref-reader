@@ -18,6 +18,33 @@ While being more performant, this approach also severely limits applicability of
 - consequently, `BufRefReader` cannot be turned into an `Iterator` (here's an easy way to think about it: what would `Iterator::collect()` return?);
 - returned references are immutable;
 - obviously, there's also nothing that can return `String`s or `&str`s for you.
+
+## Examples
+
+Read data word by word:
+
+```
+use buf_ref_reader::BufRefReaderBuilder;
+
+# fn main() -> std::io::Result<()> {
+// &[u8] implements Read, hence we use it as our data source for this example
+let data = b"lorem ipsum dolor sit amet";
+let mut r = BufRefReaderBuilder::new(&data[..])
+	.capacity(4)
+	.increment(4)
+	.build();
+
+assert_eq!(r.read_until(b' ')?, Some(&b"lorem"[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"ipsum"[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"dolor"[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"sit"[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"amet"[..]));
+assert_eq!(r.read_until(b' ')?, None); // EOF
+assert_eq!(r.read_until(b' ')?, None);
+
+# Ok(())
+# }
+```
 */
 
 #![warn(missing_docs)]
@@ -226,21 +253,6 @@ static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 #[cfg(test)]
 mod tests {
 	use super::*;
-
-	#[test]
-	fn read_until() {
-		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
-			.capacity(4)
-			.increment(4)
-			.build();
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"dolor"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"sit"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"amet"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), None);
-		assert_eq!(r.read_until(b' ').unwrap(), None);
-	}
 
 	#[test]
 	fn read_until_words() {
