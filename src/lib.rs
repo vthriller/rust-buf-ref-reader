@@ -34,10 +34,10 @@ let mut r = BufRefReaderBuilder::new(&data[..])
 	.increment(4)
 	.build();
 
-assert_eq!(r.read_until(b' ')?, Some(&b"lorem"[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"ipsum"[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"dolor"[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"sit"[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"ipsum "[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"dolor "[..]));
+assert_eq!(r.read_until(b' ')?, Some(&b"sit "[..]));
 assert_eq!(r.read_until(b' ')?, Some(&b"amet"[..]));
 assert_eq!(r.read_until(b' ')?, None); // EOF
 assert_eq!(r.read_until(b' ')?, None);
@@ -204,7 +204,7 @@ impl<R: Read> BufRefReader<R> {
 	}
 
 	/**
-	Returns bytes until `delim` or EOF is reached. If no content is available, returns `None`.
+	Returns bytes up until and including `delim`, or until EOF mark. If no content is available, returns `None`.
 
 	Returns:
 
@@ -243,8 +243,9 @@ impl<R: Read> BufRefReader<R> {
 				}
 			},
 			Some(len) => {
+				let len = len + 1; // also include matching delimiter
 				let output = &self.buf[ self.start .. self.start + len ];
-				self.start += len + 1; // also silently consume delimiter
+				self.start += len;
 				Ok(Some(output))
 			},
 		}
@@ -265,13 +266,13 @@ mod tests {
 			.capacity(4)
 			.increment(4)
 			.build();
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum"[..]));
-		assert_eq!(r.read_until(b' ').unwrap(), Some(&b""[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem "[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"ipsum "[..]));
+		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), None);
 	}
 
@@ -283,8 +284,10 @@ mod tests {
 			.build();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
-			let slice_words = words.next().unwrap();
-			assert_eq!(slice_buf, slice_words);
+			let mut slice_words = words.next().unwrap()
+				.to_vec();
+			slice_words.push(b'\n');
+			assert_eq!(slice_buf, &slice_words[..]);
 		}
 
 		// reader: returned immediately after hitting EOF past last b'\n'
@@ -302,10 +305,14 @@ mod tests {
 			.capacity(32)
 			.increment(32)
 			.build();
-		let mut words = WORDS.split(|&c| c == b'Q');
+		let mut words = WORDS.split(|&c| c == b'Q').peekable();
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
-			let slice_words = words.next().unwrap();
-			assert_eq!(slice_buf, slice_words);
+			let mut slice_words = words.next().unwrap()
+				.to_vec();
+			if words.peek() != None {
+				slice_words.push(b'Q');
+			}
+			assert_eq!(slice_buf, &slice_words[..]);
 		}
 
 		assert_eq!(words.next(), None);
