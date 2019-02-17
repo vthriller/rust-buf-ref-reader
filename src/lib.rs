@@ -132,6 +132,7 @@ impl<R: Read> BufRefReader<R> {
 
 	// returns Some(where appended data starts within the filled part of the buffer),
 	// or None for EOF
+	#[inline]
 	fn fill(&mut self) -> Result<Option<usize>> {
 		if self.start == 0 && self.end == self.buf.len() {
 			// this buffer is already full, expand
@@ -179,6 +180,7 @@ impl<R: Read> BufRefReader<R> {
 	- `Ok(None)` if no more data is available,
 	- `Err(err)`: see `std::io::Read::read()`
 	*/
+	#[inline]
 	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>> {
 		while n > self.end - self.start {
 			// fill and expand buffer until either:
@@ -210,6 +212,7 @@ impl<R: Read> BufRefReader<R> {
 	- `Ok(None)` if no more data is available,
 	- `Err(err)`: see `std::io::Read::read()`
 	*/
+	#[inline]
 	pub fn read_until(&mut self, delim: u8) -> Result<Option<&[u8]>> {
 		let mut len = None;
 		// position within filled part of the buffer,
