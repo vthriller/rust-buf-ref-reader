@@ -237,14 +237,14 @@ impl<R: Read> BufRefReader<R> {
 				if self.start == self.end {
 					Ok(None)
 				} else {
-					let output = &self.buf[ self.start .. self.end ];
+					let output = &filled!(self);
 					self.start = self.end;
 					Ok(Some(output))
 				}
 			},
 			Some(len) => {
 				let len = len + 1; // also include matching delimiter
-				let output = &self.buf[ self.start .. self.start + len ];
+				let output = &filled!(self)[..len];
 				self.start += len;
 				Ok(Some(output))
 			},
