@@ -1,4 +1,4 @@
-use bencher::{Bencher, benchmark_group, benchmark_main};
+use bencher::{Bencher, benchmark_group, benchmark_main, black_box};
 
 use buf_ref_reader::*;
 use std::io::{BufRead, BufReader};
@@ -6,13 +6,20 @@ use memchr::memchr;
 
 static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 
+// make sure we're blackboxing &[u8], not Vec<u8> or something else
+fn consume(data: &[u8]) {
+	black_box(data);
+}
+
 fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
 			.increment(incr)
 			.build();
-		while r.read_until(b'\n').unwrap() != None {}
+		while let Some(line) = r.read_until(b'\n').unwrap() {
+			consume(line);
+		}
 	})
 }
 fn bufref_read_until_16x16(b: &mut Bencher) { bufref(b, 16, 16) }
@@ -24,7 +31,10 @@ fn std_read_until(b: &mut Bencher, cap: usize) {
 	b.iter(|| {
 		let mut r = BufReader::with_capacity(cap, &WORDS[..]);
 		let mut buf = vec![];
-		while r.read_until(b'\n', &mut buf).unwrap() != 0 {}
+		while r.read_until(b'\n', &mut buf).unwrap() != 0 {
+			consume(buf.as_slice());
+			buf.clear();
+		}
 	})
 }
 fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
@@ -57,7 +67,7 @@ fn std_fillbuf_4k(b: &mut Bencher) {
 				// EOF
 
 				if let Some(head) = &mut head {
-					// F(head.as_slice());
+					consume(head.as_slice());
 				}
 
 				break;
@@ -73,7 +83,7 @@ fn std_fillbuf_4k(b: &mut Bencher) {
 						tail
 					};
 
-					// F(s);
+					consume(s);
 
 					head = None;
 					// and only now, after we've used `tail`, we consume data referenced via said `tail`
@@ -105,7 +115,9 @@ fn bufref_read_until_long(b: &mut Bencher) {
 			.capacity(4096)
 			.increment(4096)
 			.build();
-		while r.read_until(b'Q').unwrap() != None {}
+		while let Some(x) = r.read_until(b'Q').unwrap() {
+			consume(x);
+		}
 	})
 }
 
@@ -113,7 +125,10 @@ fn std_read_until_long(b: &mut Bencher) {
 	b.iter(|| {
 		let mut r = BufReader::with_capacity(4096, &WORDS[..]);
 		let mut buf = vec![];
-		while r.read_until(b'Q', &mut buf).unwrap() != 0 {}
+		while r.read_until(b'Q', &mut buf).unwrap() != 0 {
+			consume(buf.as_slice());
+			buf.clear();
+		}
 	})
 }
 

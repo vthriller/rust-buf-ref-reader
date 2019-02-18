@@ -1,9 +1,14 @@
-use bencher::{Bencher, benchmark_group, benchmark_main};
+use bencher::{Bencher, benchmark_group, benchmark_main, black_box};
 
 use buf_ref_reader::*;
 use std::io::{Read, BufReader};
 
 static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
+
+// make sure we're blackboxing &[u8], not Vec<u8> or something else
+fn consume(data: &[u8]) {
+	black_box(data);
+}
 
 fn bufref_read(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 	b.iter(|| {
@@ -11,7 +16,9 @@ fn bufref_read(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 			.capacity(cap)
 			.increment(incr)
 			.build();
-		while r.read(read).unwrap() != None {}
+		while let Some(chunk) = r.read(read).unwrap() {
+			consume(chunk);
+		}
 	})
 }
 fn bufref_read_16x16x4(b: &mut Bencher) { bufref_read(b, 16, 16, 4) }
@@ -23,7 +30,9 @@ fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 		let mut r = BufReader::with_capacity(cap, &WORDS[..]);
 		let mut buf = Vec::with_capacity(read);
 		unsafe { buf.set_len(read); }
-		while r.read(&mut buf[..]).unwrap() != 0 {}
+		while r.read(&mut buf[..]).unwrap() != 0 {
+			consume(buf.as_slice());
+		}
 	})
 }
 fn std_read_16x4(b: &mut Bencher) { std_read(b, 16, 4) }
