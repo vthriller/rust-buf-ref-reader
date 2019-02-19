@@ -1,19 +1,33 @@
 use bencher::{Bencher, benchmark_group, benchmark_main, black_box};
 
 use buf_ref_reader::*;
-use std::io::{BufRead, BufReader};
+use std::io::{Read, BufRead, BufReader, Result};
 use memchr::memchr;
 
+use std::{thread, time};
+
 static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
+
+struct ThrottledReader<R: Read>(R);
+impl<R: Read> Read for ThrottledReader<R> {
+	fn read(&mut self, buf: &mut [u8]) -> Result<usize> {
+		// sure, this value is close to nothing,
+		// but at least we're going to postpone actual read for the time of a single syscall
+		thread::sleep(time::Duration::from_nanos(1));
+		self.0.read(buf)
+	}
+}
 
 // make sure we're blackboxing &[u8], not Vec<u8> or something else
 fn consume(data: &[u8]) {
 	black_box(data);
 }
 
-fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
+macro_rules! bufref {
+($fname:ident, $wrapped:expr) => {
+fn $fname(b: &mut Bencher, cap: usize, incr: usize) {
 	b.iter(|| {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new($wrapped)
 			.capacity(cap)
 			.increment(incr)
 			.build();
@@ -22,14 +36,24 @@ fn bufref(b: &mut Bencher, cap: usize, incr: usize) {
 		}
 	})
 }
+}
+}
+bufref!(bufref, &WORDS[..]);
 fn bufref_read_until_16x16(b: &mut Bencher) { bufref(b, 16, 16) }
 fn bufref_read_until_64x16(b: &mut Bencher) { bufref(b, 64, 16) }
 fn bufref_read_until_64x64(b: &mut Bencher) { bufref(b, 64, 64) }
 fn bufref_read_until_4kx4k(b: &mut Bencher) { bufref(b, 4096, 4096) }
+bufref!(bufref_throttled, ThrottledReader(&WORDS[..]));
+fn throttled_bufref_read_until_16x16(b: &mut Bencher) { bufref_throttled(b, 16, 16) }
+fn throttled_bufref_read_until_64x16(b: &mut Bencher) { bufref_throttled(b, 64, 16) }
+fn throttled_bufref_read_until_64x64(b: &mut Bencher) { bufref_throttled(b, 64, 64) }
+fn throttled_bufref_read_until_4kx4k(b: &mut Bencher) { bufref_throttled(b, 4096, 4096) }
 
-fn std_read_until(b: &mut Bencher, cap: usize) {
+macro_rules! std_read_until {
+($fname:ident, $wrapped:expr) => {
+fn $fname(b: &mut Bencher, cap: usize) {
 	b.iter(|| {
-		let mut r = BufReader::with_capacity(cap, &WORDS[..]);
+		let mut r = BufReader::with_capacity(cap, $wrapped);
 		let mut buf = vec![];
 		while r.read_until(b'\n', &mut buf).unwrap() != 0 {
 			consume(buf.as_slice());
@@ -37,9 +61,16 @@ fn std_read_until(b: &mut Bencher, cap: usize) {
 		}
 	})
 }
+}
+}
+std_read_until!(std_read_until, &WORDS[..]);
 fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
 fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
 fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
+std_read_until!(std_read_until_throttled, ThrottledReader(&WORDS[..]));
+fn throttled_std_read_until_16(b: &mut Bencher) { std_read_until_throttled(b, 16) }
+fn throttled_std_read_until_64(b: &mut Bencher) { std_read_until_throttled(b, 64) }
+fn throttled_std_read_until_4k(b: &mut Bencher) { std_read_until_throttled(b, 4096) }
 
 /*
 This one is like BufRefReader that's made of parts of BufReader,
@@ -55,9 +86,11 @@ to complete that temporary buffer first.
 Temporary buffer is discarded upon next read,
 and regular referencing of parts of the main buffer is resumed.
 */
-fn std_fillbuf_4k(b: &mut Bencher) {
+macro_rules! std_fillbuf_4k {
+($fname:ident, $wrapped:expr) => {
+fn $fname(b: &mut Bencher) {
 	b.iter(|| {
-		let mut r = BufReader::with_capacity(4096, &WORDS[..]);
+		let mut r = BufReader::with_capacity(4096, $wrapped);
 
 		let mut head: Option<Vec<u8>> = None;
 
@@ -106,12 +139,18 @@ fn std_fillbuf_4k(b: &mut Bencher) {
 		}
 	})
 }
+}
+}
+std_fillbuf_4k!(std_fillbuf_4k, &WORDS[..]);
+std_fillbuf_4k!(throttled_std_fillbuf_4k, ThrottledReader(&WORDS[..]));
 
 // like read_until_words_long test, split by the most rare character in WORDS:
 
-fn bufref_read_until_long(b: &mut Bencher) {
+macro_rules! bufref_read_until_long {
+($fname:ident, $wrapped:expr) => {
+fn $fname(b: &mut Bencher) {
 	b.iter(|| {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new($wrapped)
 			.capacity(4096)
 			.increment(4096)
 			.build();
@@ -120,10 +159,16 @@ fn bufref_read_until_long(b: &mut Bencher) {
 		}
 	})
 }
+}
+}
+bufref_read_until_long!(bufref_read_until_long, &WORDS[..]);
+bufref_read_until_long!(throttled_bufref_read_until_long, ThrottledReader(&WORDS[..]));
 
-fn std_read_until_long(b: &mut Bencher) {
+macro_rules! std_read_until_long {
+($fname:ident, $wrapped:expr) => {
+fn $fname(b: &mut Bencher) {
 	b.iter(|| {
-		let mut r = BufReader::with_capacity(4096, &WORDS[..]);
+		let mut r = BufReader::with_capacity(4096, $wrapped);
 		let mut buf = vec![];
 		while r.read_until(b'Q', &mut buf).unwrap() != 0 {
 			consume(buf.as_slice());
@@ -131,17 +176,35 @@ fn std_read_until_long(b: &mut Bencher) {
 		}
 	})
 }
+}
+}
+std_read_until_long!(std_read_until_long, &WORDS[..]);
+std_read_until_long!(throttled_std_read_until_long, ThrottledReader(&WORDS[..]));
 
 benchmark_group!(benches,
 	bufref_read_until_16x16,
 	bufref_read_until_64x16,
 	bufref_read_until_64x64,
 	bufref_read_until_4kx4k,
+	throttled_bufref_read_until_16x16,
+	throttled_bufref_read_until_64x16,
+	throttled_bufref_read_until_64x64,
+	throttled_bufref_read_until_4kx4k,
+
 	std_read_until_16,
 	std_read_until_64,
 	std_read_until_4k,
+	throttled_std_read_until_16,
+	throttled_std_read_until_64,
+	throttled_std_read_until_4k,
+
 	std_fillbuf_4k,
+	throttled_std_fillbuf_4k,
+
 	bufref_read_until_long,
+	throttled_bufref_read_until_long,
+
 	std_read_until_long,
+	throttled_std_read_until_long,
 );
 benchmark_main!(benches);
