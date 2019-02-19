@@ -44,10 +44,8 @@ fn bufref_read_until_64x16(b: &mut Bencher) { bufref(b, 64, 16) }
 fn bufref_read_until_64x64(b: &mut Bencher) { bufref(b, 64, 64) }
 fn bufref_read_until_4kx4k(b: &mut Bencher) { bufref(b, 4096, 4096) }
 bufref!(bufref_throttled, ThrottledReader(&WORDS[..]));
-fn throttled_bufref_read_until_16x16(b: &mut Bencher) { bufref_throttled(b, 16, 16) }
-fn throttled_bufref_read_until_64x16(b: &mut Bencher) { bufref_throttled(b, 64, 16) }
-fn throttled_bufref_read_until_64x64(b: &mut Bencher) { bufref_throttled(b, 64, 64) }
 fn throttled_bufref_read_until_4kx4k(b: &mut Bencher) { bufref_throttled(b, 4096, 4096) }
+fn throttled_bufref_read_until_64kx64k(b: &mut Bencher) { bufref_throttled(b, 64*1024, 64*1024) }
 
 macro_rules! std_read_until {
 	($fname:ident, $wrapped:expr) => {
@@ -68,9 +66,8 @@ fn std_read_until_16(b: &mut Bencher) { std_read_until(b, 16) }
 fn std_read_until_64(b: &mut Bencher) { std_read_until(b, 64) }
 fn std_read_until_4k(b: &mut Bencher) { std_read_until(b, 4096) }
 std_read_until!(std_read_until_throttled, ThrottledReader(&WORDS[..]));
-fn throttled_std_read_until_16(b: &mut Bencher) { std_read_until_throttled(b, 16) }
-fn throttled_std_read_until_64(b: &mut Bencher) { std_read_until_throttled(b, 64) }
 fn throttled_std_read_until_4k(b: &mut Bencher) { std_read_until_throttled(b, 4096) }
+fn throttled_std_read_until_64k(b: &mut Bencher) { std_read_until_throttled(b, 64*1024) }
 
 /*
 This one is like BufRefReader that's made of parts of BufReader,
@@ -87,10 +84,10 @@ Temporary buffer is discarded upon next read,
 and regular referencing of parts of the main buffer is resumed.
 */
 macro_rules! std_fillbuf_4k {
-	($fname:ident, $wrapped:expr) => {
+	($fname:ident, $wrapped:expr, $cap:expr) => {
 		fn $fname(b: &mut Bencher) {
 			b.iter(|| {
-				let mut r = BufReader::with_capacity(4096, $wrapped);
+				let mut r = BufReader::with_capacity($cap, $wrapped);
 
 				let mut head: Option<Vec<u8>> = None;
 
@@ -141,8 +138,9 @@ macro_rules! std_fillbuf_4k {
 		}
 	}
 }
-std_fillbuf_4k!(std_fillbuf_4k, &WORDS[..]);
-std_fillbuf_4k!(throttled_std_fillbuf_4k, ThrottledReader(&WORDS[..]));
+std_fillbuf_4k!(std_fillbuf_4k, &WORDS[..], 4096);
+std_fillbuf_4k!(throttled_std_fillbuf_4k, ThrottledReader(&WORDS[..]), 4096);
+std_fillbuf_4k!(throttled_std_fillbuf_64k, ThrottledReader(&WORDS[..]), 64*1024);
 
 // like read_until_words_long test, split by the most rare character in WORDS:
 
@@ -186,20 +184,20 @@ benchmark_group!(benches,
 	bufref_read_until_64x16,
 	bufref_read_until_64x64,
 	bufref_read_until_4kx4k,
-	throttled_bufref_read_until_16x16,
-	throttled_bufref_read_until_64x16,
-	throttled_bufref_read_until_64x64,
+
 	throttled_bufref_read_until_4kx4k,
+	throttled_bufref_read_until_64kx64k,
 
 	std_read_until_16,
 	std_read_until_64,
 	std_read_until_4k,
-	throttled_std_read_until_16,
-	throttled_std_read_until_64,
+
 	throttled_std_read_until_4k,
+	throttled_std_read_until_64k,
 
 	std_fillbuf_4k,
 	throttled_std_fillbuf_4k,
+	throttled_std_fillbuf_64k,
 
 	bufref_read_until_long,
 	throttled_bufref_read_until_long,
