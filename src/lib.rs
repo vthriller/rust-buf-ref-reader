@@ -49,7 +49,7 @@ assert_eq!(r.read_until(b' ')?, None);
 
 #![warn(missing_docs)]
 
-use std::io::{Read, Result};
+use std::io::{self, Read};
 use memchr::memchr;
 // https://github.com/rust-lang/rust/issues/54236
 use copy_in_place::*;
@@ -133,7 +133,7 @@ impl<R: Read> BufRefReader<R> {
 	// returns Some(where appended data starts within the filled part of the buffer),
 	// or None for EOF
 	#[inline]
-	fn fill(&mut self) -> Result<Option<usize>> {
+	fn fill(&mut self) -> io::Result<Option<usize>> {
 		if self.start == 0 && self.end == self.buf.len() {
 			// this buffer is already full, expand
 			self.buf.reserve(self.incr);
@@ -181,7 +181,7 @@ impl<R: Read> BufRefReader<R> {
 	- `Err(err)`: see `std::io::Read::read()`
 	*/
 	#[inline]
-	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>> {
+	pub fn read(&mut self, n: usize) -> io::Result<Option<&[u8]>> {
 		while n > self.end - self.start {
 			// fill and expand buffer until either:
 			// - buffer starts holding the requested amount of data
@@ -213,7 +213,7 @@ impl<R: Read> BufRefReader<R> {
 	- `Err(err)`: see `std::io::Read::read()`
 	*/
 	#[inline]
-	pub fn read_until(&mut self, delim: u8) -> Result<Option<&[u8]>> {
+	pub fn read_until(&mut self, delim: u8) -> io::Result<Option<&[u8]>> {
 		let mut len = None;
 		// position within filled part of the buffer,
 		// from which to continue search for character
