@@ -19,20 +19,24 @@ While being more performant, this approach also severely limits applicability of
 - returned references are immutable;
 - obviously, there's also nothing that can return `String`s or `&str`s for you.
 
+Additionaly, [slice-deque](https://github.com/gnzlbg/slice_deque) poses limitations of its own
+(platform support, min buffer size, memory allocator bypass,
+possible overhead due to how kernel handles address spaces with lots of maps).
+
 ## Examples
 
 Read data word by word:
 
 ```
-use buf_ref_reader::BufRefReaderBuilder;
+use buf_ref_reader::*;
 
-# fn main() -> std::io::Result<()> {
+# fn main() -> Result<(), Error> {
 // &[u8] implements Read, hence we use it as our data source for this example
 let data = b"lorem ipsum dolor sit amet";
 let mut r = BufRefReaderBuilder::new(&data[..])
 	.capacity(4)
 	.increment(4)
-	.build();
+	.build()?;
 
 assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
 assert_eq!(r.read_until(b' ')?, Some(&b"ipsum "[..]));
@@ -49,10 +53,30 @@ assert_eq!(r.read_until(b' ')?, None);
 
 #![warn(missing_docs)]
 
+use quick_error::quick_error;
+
 use std::io::{self, Read};
 use memchr::memchr;
-// https://github.com/rust-lang/rust/issues/54236
-use copy_in_place::*;
+
+/*
+SliceDeque is quite inconvenient, e.g.:
+- you still need to resort to `unsafe {}`
+  to append data through `&mut [u8]`
+  and advance tail position accordingly,
+- you still need to be careful with pointers to head/tail
+  and actively prevent underruns/overruns,
+- borrow checker still messes up reader methods
+  (e.g. `buf.move_head()` after `buf.as_slice()`).
+Hence we drop to a lower level thing.
+
+But even this lower level buffer is not without its own warts:
+it operates with an overall size of a mirrored buffer, not one of its halves,
+which results in a lot of unnecessary `* 2` on the user's side
+and lots of `/ 2`, `% 2`, and `assert!`s in the crate that implements it.
+And, yes, this is just utterly confusing:
+why report len() of X when you can only put X/2 elements inside?
+*/
+use slice_deque::{Buffer, AllocError};
 
 /**
 Buffering reader.
@@ -61,16 +85,35 @@ See [module-level docs](index.html) for examples.
 */
 pub struct BufRefReader<R> {
 	src: R,
-	buf: Vec<u8>,
+	buf: Buffer<u8>,
+	/*
+	We keep size of a `buf`'s size on our own because `buf.len()`:
+	- returns twice the amount of data buffer can actually handle
+	  (i.e. size of mmaped region with two mirrors),
+	  which makes it confusing, and it's also an error waiting to happen,
+	- it also causes an immutable borrowing of `buf`,
+	  thus making most of manipulations with `buf`'s content inconvenient.
+	*/
+	bufsize: usize,
 	incr: usize,
 	// position of data within the `buf`
 	start: usize,
-	end: usize,
+	len: usize,
 }
 
 // XXX hack; see BufRefReader.filled below
 macro_rules! filled {
-	($self:ident) => (&$self.buf[ $self.start .. $self.end ])
+	($self:ident) => (&unsafe { $self.buf.as_mut_slice() }[ $self.start .. ($self.start + $self.len) ])
+}
+macro_rules! consume {
+	($self:ident, $n:expr) => {
+		$self.start += $n;
+		if $self.start >= $self.bufsize {
+			// keep $self.start within bufsize
+			$self.start -= $self.bufsize;
+		}
+		$self.len -= $n;
+	}
 }
 
 /**
@@ -109,23 +152,34 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	/// Create actual reader.
-	pub fn build(self) -> BufRefReader<R> {
-		let mut buf = Vec::with_capacity(self.bufsize);
-		unsafe { buf.set_len(self.bufsize); }
-
-		BufRefReader {
+	pub fn build(self) -> Result<BufRefReader<R>, AllocError> {
+		let buf = Buffer::uninitialized(self.bufsize * 2)?;
+		// slice-deque will round bufsize to the nearest page size or something,
+		// so we query it back
+		let bufsize = buf.len() / 2;
+		Ok(BufRefReader {
 			src: self.src,
-			buf,
+			buf, bufsize,
 			incr: self.incr,
-			start: 0, end: 0,
-		}
+			start: 0, len: 0,
+		})
 	}
 }
 
+quick_error! {
+	/// Error type that reading functions might emit
+	#[derive(Debug)]
+	pub enum Error {
+		/// Error reading from actual reader
+		IO(err: io::Error) { from() }
+		/// Indicates failure to create/grow buffer
+		Buf(err: AllocError) { from() }
+	}
+}
 
 impl<R: Read> BufRefReader<R> {
 	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
-	pub fn new(src: R) -> BufRefReader<R> {
+	pub fn new(src: R) -> Result<BufRefReader<R>, AllocError> {
 		BufRefReaderBuilder::new(src)
 			.build()
 	}
@@ -133,29 +187,39 @@ impl<R: Read> BufRefReader<R> {
 	// returns Some(where appended data starts within the filled part of the buffer),
 	// or None for EOF
 	#[inline]
-	fn fill(&mut self) -> io::Result<Option<usize>> {
-		if self.start == 0 && self.end == self.buf.len() {
+	fn fill(&mut self) -> Result<Option<usize>, Error> {
+		if self.start == 0 && self.len == self.bufsize {
 			// this buffer is already full, expand
-			self.buf.reserve(self.incr);
-			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
-		} else {
-			// reallocate and fill existing buffer
-			if self.end - self.start != 0 {
-				//self.buf.copy_within(self.start..self.end, 0)
-				copy_in_place(&mut self.buf, self.start..self.end, 0)
+			self.bufsize += self.incr;
+			let mut new = Buffer::uninitialized(self.bufsize * 2)?;
+			// see BufRefReaderBuilder::build()
+			self.bufsize = new.len() / 2;
+			// move data at the start of new buffer
+			unsafe {
+				core::ptr::copy(
+						self.buf.as_mut_slice()[self.start..].as_mut_ptr(),
+						new.as_mut_slice().as_mut_ptr(),
+						self.len,
+				);
 			}
-			// (A)..(A+B) → 0..B
-			self.end -= self.start;
 			self.start = 0;
+			self.buf = new;
 		}
 
-		let old_end = self.end;
+		let old_len = self.len;
 
-		match self.src.read(&mut self.buf[self.end..])? {
+		/*
+		fill b-through-a:
+		| a--b | a--b |
+		|-b  a-|-b  a-|
+		*/
+		let end = self.start + self.len;
+		let remaining = self.bufsize - self.len;
+		match self.src.read(&mut unsafe { self.buf.as_mut_slice() }[ end .. (end+remaining) ])? {
 			0 => Ok(None), // EOF
 			n => {
-				self.end += n;
-				Ok(Some(old_end - self.start))
+				self.len += n;
+				Ok(Some(old_len))
 			}
 		}
 	}
@@ -181,14 +245,14 @@ impl<R: Read> BufRefReader<R> {
 	- `Err(err)`: see `std::io::Read::read()`
 	*/
 	#[inline]
-	pub fn read(&mut self, n: usize) -> io::Result<Option<&[u8]>> {
-		while n > self.end - self.start {
+	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>, Error> {
+		while n > self.len {
 			// fill and expand buffer until either:
 			// - buffer starts holding the requested amount of data
 			// - EOF is reached
 			if self.fill()?.is_none() { break };
 		}
-		if self.start == self.end {
+		if self.len == 0 {
 			// reading past EOF
 			Ok(None)
 		} else {
@@ -198,7 +262,7 @@ impl<R: Read> BufRefReader<R> {
 			} else {
 				output
 			};
-			self.start += output.len();
+			consume!(self, output.len());
 			Ok(Some(output))
 		}
 	}
@@ -213,7 +277,7 @@ impl<R: Read> BufRefReader<R> {
 	- `Err(err)`: see `std::io::Read::read()`
 	*/
 	#[inline]
-	pub fn read_until(&mut self, delim: u8) -> io::Result<Option<&[u8]>> {
+	pub fn read_until(&mut self, delim: u8) -> Result<Option<&[u8]>, Error> {
 		let mut len = None;
 		// position within filled part of the buffer,
 		// from which to continue search for character
@@ -234,18 +298,18 @@ impl<R: Read> BufRefReader<R> {
 
 		match len {
 			None => { // EOF
-				if self.start == self.end {
+				if self.len == 0 {
 					Ok(None)
 				} else {
 					let output = &filled!(self);
-					self.start = self.end;
+					consume!(self, output.len());
 					Ok(Some(output))
 				}
 			},
 			Some(len) => {
 				let len = len + 1; // also include matching delimiter
 				let output = &filled!(self)[..len];
-				self.start += len;
+				consume!(self, output.len());
 				Ok(Some(output))
 			},
 		}
@@ -265,7 +329,8 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&b"  lorem   ipsum  "[..])
 			.capacity(4)
 			.increment(4)
-			.build();
+			.build()
+			.unwrap();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b"lorem "[..]));
@@ -281,7 +346,8 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(4)
 			.increment(4)
-			.build();
+			.build()
+			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
 			let mut slice_words = words.next().unwrap()
@@ -304,7 +370,8 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(32)
 			.increment(32)
-			.build();
+			.build()
+			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
 			let mut slice_words = words.next().unwrap()
@@ -323,7 +390,8 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
 			.increment(4)
-			.build();
+			.build()
+			.unwrap();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
 		assert_eq!(r.read(1024).unwrap(), Some(&b" dolor sit amet"[..]));
@@ -334,7 +402,8 @@ mod tests {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
 			.increment(incr)
-			.build();
+			.build()
+			.unwrap();
 		let mut words = WORDS.chunks(read);
 		while let Ok(Some(slice_buf)) = r.read(read) {
 			let slice_words = words.next().unwrap();

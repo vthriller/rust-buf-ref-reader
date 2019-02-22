@@ -15,7 +15,8 @@ fn bufref_read(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
 			.increment(incr)
-			.build();
+			.build()
+			.unwrap();
 		while let Some(chunk) = r.read(read).unwrap() {
 			consume(chunk);
 		}

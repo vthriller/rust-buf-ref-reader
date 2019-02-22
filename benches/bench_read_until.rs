@@ -30,7 +30,8 @@ macro_rules! bufref {
 				let mut r = BufRefReaderBuilder::new($wrapped)
 					.capacity($cap)
 					.increment($incr)
-					.build();
+					.build()
+					.unwrap();
 				while let Some(line) = r.read_until(b'\n').unwrap() {
 					consume(line);
 				}
@@ -153,7 +154,8 @@ macro_rules! bufref_read_until_long {
 				let mut r = BufRefReaderBuilder::new($wrapped)
 					.capacity(4096)
 					.increment(4096)
-					.build();
+					.build()
+					.unwrap();
 				while let Some(x) = r.read_until(b'Q').unwrap() {
 					consume(x);
 				}
