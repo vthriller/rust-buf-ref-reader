@@ -40,13 +40,13 @@ macro_rules! bufref {
 	}
 }
 
-bufref!(bufref_read_until_4kx4k, &WORDS[..], 4096, 4096);
-bufref!(bufref_read_until_64kx4k, &WORDS[..], 64*1024, 4096);
-bufref!(bufref_read_until_64kx64k, &WORDS[..], 64*1024, 64*1024);
+bufref!(bufref_read_until_4x4, &WORDS[..], 4096, 4096);
+bufref!(bufref_read_until_64x4, &WORDS[..], 64*1024, 4096);
+bufref!(bufref_read_until_64x64, &WORDS[..], 64*1024, 64*1024);
 
-bufref!(throttled_bufref_read_until_4kx4k, ThrottledReader(&WORDS[..]), 4096, 4096);
-bufref!(throttled_bufref_read_until_64kx4k, ThrottledReader(&WORDS[..]), 64*1024, 4096);
-bufref!(throttled_bufref_read_until_64kx64k, ThrottledReader(&WORDS[..]), 64*1024, 64*1024);
+bufref!(throttled_bufref_read_until_4x4, ThrottledReader(&WORDS[..]), 4096, 4096);
+bufref!(throttled_bufref_read_until_64x4, ThrottledReader(&WORDS[..]), 64*1024, 4096);
+bufref!(throttled_bufref_read_until_64x64, ThrottledReader(&WORDS[..]), 64*1024, 64*1024);
 
 macro_rules! std_read_until {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
@@ -63,11 +63,11 @@ macro_rules! std_read_until {
 	}
 }
 
-std_read_until!(std_read_until_4k, &WORDS[..], 4096);
-std_read_until!(std_read_until_64k, &WORDS[..], 64*1024);
+std_read_until!(std_read_until_4, &WORDS[..], 4096);
+std_read_until!(std_read_until_64, &WORDS[..], 64*1024);
 
-std_read_until!(throttled_std_read_until_4k, ThrottledReader(&WORDS[..]), 4096);
-std_read_until!(throttled_std_read_until_64k, ThrottledReader(&WORDS[..]), 64*1024);
+std_read_until!(throttled_std_read_until_4, ThrottledReader(&WORDS[..]), 4096);
+std_read_until!(throttled_std_read_until_64, ThrottledReader(&WORDS[..]), 64*1024);
 
 /*
 This one is like BufRefReader that's made of parts of BufReader,
@@ -139,11 +139,11 @@ macro_rules! std_fillbuf {
 	}
 }
 
-std_fillbuf!(std_fillbuf_4k, &WORDS[..], 4096);
-std_fillbuf!(std_fillbuf_64k, &WORDS[..], 64*1024);
+std_fillbuf!(std_fillbuf_4, &WORDS[..], 4096);
+std_fillbuf!(std_fillbuf_64, &WORDS[..], 64*1024);
 
-std_fillbuf!(throttled_std_fillbuf_4k, ThrottledReader(&WORDS[..]), 4096);
-std_fillbuf!(throttled_std_fillbuf_64k, ThrottledReader(&WORDS[..]), 64*1024);
+std_fillbuf!(throttled_std_fillbuf_4, ThrottledReader(&WORDS[..]), 4096);
+std_fillbuf!(throttled_std_fillbuf_64, ThrottledReader(&WORDS[..]), 64*1024);
 
 // like read_until_words_long test, split by the most rare character in WORDS:
 
@@ -164,13 +164,13 @@ macro_rules! bufref_read_until_long {
 	}
 }
 
-bufref_read_until_long!(bufref_read_until_long_4kx4k, &WORDS[..], 4096, 4096);
-bufref_read_until_long!(bufref_read_until_long_64kx4k, &WORDS[..], 64*1024, 4096);
-bufref_read_until_long!(bufref_read_until_long_64kx64k, &WORDS[..], 64*1024, 64*1024);
+bufref_read_until_long!(bufref_read_until_long_4x4, &WORDS[..], 4096, 4096);
+bufref_read_until_long!(bufref_read_until_long_64x4, &WORDS[..], 64*1024, 4096);
+bufref_read_until_long!(bufref_read_until_long_64x64, &WORDS[..], 64*1024, 64*1024);
 
-bufref_read_until_long!(throttled_bufref_read_until_long_4kx4k, ThrottledReader(&WORDS[..]), 4096, 4096);
-bufref_read_until_long!(throttled_bufref_read_until_long_64kx4k, ThrottledReader(&WORDS[..]), 64*1024, 4096);
-bufref_read_until_long!(throttled_bufref_read_until_long_64kx64k, ThrottledReader(&WORDS[..]), 64*1024, 64*1024);
+bufref_read_until_long!(throttled_bufref_read_until_long_4x4, ThrottledReader(&WORDS[..]), 4096, 4096);
+bufref_read_until_long!(throttled_bufref_read_until_long_64x4, ThrottledReader(&WORDS[..]), 64*1024, 4096);
+bufref_read_until_long!(throttled_bufref_read_until_long_64x64, ThrottledReader(&WORDS[..]), 64*1024, 64*1024);
 
 macro_rules! std_read_until_long {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
@@ -187,45 +187,45 @@ macro_rules! std_read_until_long {
 	}
 }
 
-std_read_until_long!(std_read_until_long_4k, &WORDS[..], 4096);
-std_read_until_long!(std_read_until_long_64k, &WORDS[..], 64*1024);
+std_read_until_long!(std_read_until_long_4, &WORDS[..], 4096);
+std_read_until_long!(std_read_until_long_64, &WORDS[..], 64*1024);
 
-std_read_until_long!(throttled_std_read_until_long_4k, ThrottledReader(&WORDS[..]), 4096);
-std_read_until_long!(throttled_std_read_until_long_64k, ThrottledReader(&WORDS[..]), 64*1024);
+std_read_until_long!(throttled_std_read_until_long_4, ThrottledReader(&WORDS[..]), 4096);
+std_read_until_long!(throttled_std_read_until_long_64, ThrottledReader(&WORDS[..]), 64*1024);
 
 benchmark_group!(benches,
-	bufref_read_until_4kx4k,
-	bufref_read_until_64kx4k,
-	bufref_read_until_64kx64k,
+	bufref_read_until_4x4,
+	bufref_read_until_64x4,
+	bufref_read_until_64x64,
 
-	throttled_bufref_read_until_4kx4k,
-	throttled_bufref_read_until_64kx4k,
-	throttled_bufref_read_until_64kx64k,
+	throttled_bufref_read_until_4x4,
+	throttled_bufref_read_until_64x4,
+	throttled_bufref_read_until_64x64,
 
-	std_read_until_4k,
-	std_read_until_64k,
+	std_read_until_4,
+	std_read_until_64,
 
-	throttled_std_read_until_4k,
-	throttled_std_read_until_64k,
+	throttled_std_read_until_4,
+	throttled_std_read_until_64,
 
-	std_fillbuf_4k,
-	std_fillbuf_64k,
+	std_fillbuf_4,
+	std_fillbuf_64,
 
-	throttled_std_fillbuf_4k,
-	throttled_std_fillbuf_64k,
+	throttled_std_fillbuf_4,
+	throttled_std_fillbuf_64,
 
-	bufref_read_until_long_4kx4k,
-	bufref_read_until_long_64kx4k,
-	bufref_read_until_long_64kx64k,
+	bufref_read_until_long_4x4,
+	bufref_read_until_long_64x4,
+	bufref_read_until_long_64x64,
 
-	throttled_bufref_read_until_long_4kx4k,
-	throttled_bufref_read_until_long_64kx4k,
-	throttled_bufref_read_until_long_64kx64k,
+	throttled_bufref_read_until_long_4x4,
+	throttled_bufref_read_until_long_64x4,
+	throttled_bufref_read_until_long_64x64,
 
-	std_read_until_long_4k,
-	std_read_until_long_64k,
+	std_read_until_long_4,
+	std_read_until_long_64,
 
-	throttled_std_read_until_long_4k,
-	throttled_std_read_until_long_64k,
+	throttled_std_read_until_long_4,
+	throttled_std_read_until_long_64,
 );
 benchmark_main!(benches);
