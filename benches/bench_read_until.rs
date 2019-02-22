@@ -83,7 +83,7 @@ to complete that temporary buffer first.
 Temporary buffer is discarded upon next read,
 and regular referencing of parts of the main buffer is resumed.
 */
-macro_rules! std_fillbuf_4k {
+macro_rules! std_fillbuf {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
 		fn $fname(b: &mut Bencher) {
 			b.iter(|| {
@@ -139,10 +139,11 @@ macro_rules! std_fillbuf_4k {
 	}
 }
 
-std_fillbuf_4k!(std_fillbuf_4k, &WORDS[..], 4096);
+std_fillbuf!(std_fillbuf_4k, &WORDS[..], 4096);
+std_fillbuf!(std_fillbuf_64k, &WORDS[..], 64*1024);
 
-std_fillbuf_4k!(throttled_std_fillbuf_4k, ThrottledReader(&WORDS[..]), 4096);
-std_fillbuf_4k!(throttled_std_fillbuf_64k, ThrottledReader(&WORDS[..]), 64*1024);
+std_fillbuf!(throttled_std_fillbuf_4k, ThrottledReader(&WORDS[..]), 4096);
+std_fillbuf!(throttled_std_fillbuf_64k, ThrottledReader(&WORDS[..]), 64*1024);
 
 // like read_until_words_long test, split by the most rare character in WORDS:
 
@@ -202,6 +203,8 @@ benchmark_group!(benches,
 	throttled_std_read_until_64k,
 
 	std_fillbuf_4k,
+	std_fillbuf_64k,
+
 	throttled_std_fillbuf_4k,
 	throttled_std_fillbuf_64k,
 
