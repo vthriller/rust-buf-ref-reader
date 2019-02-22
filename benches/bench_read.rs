@@ -22,9 +22,9 @@ fn bufref_read(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		}
 	})
 }
-fn bufref_read_16x16x4(b: &mut Bencher) { bufref_read(b, 16, 16, 4) }
-fn bufref_read_64x16x4(b: &mut Bencher) { bufref_read(b, 64, 16, 4) }
 fn bufref_read_4kx4kx4(b: &mut Bencher) { bufref_read(b, 4096, 4096, 4) }
+fn bufref_read_64kx4kx4(b: &mut Bencher) { bufref_read(b, 64*1024, 4096, 4) }
+fn bufref_read_64kx64kx4(b: &mut Bencher) { bufref_read(b, 64*1024, 64*1024, 4) }
 
 fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
@@ -36,16 +36,14 @@ fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 		}
 	})
 }
-fn std_read_16x4(b: &mut Bencher) { std_read(b, 16, 4) }
-fn std_read_64x4(b: &mut Bencher) { std_read(b, 16, 4) }
 fn std_read_4kx4(b: &mut Bencher) { std_read(b, 4096, 4) }
+fn std_read_64kx4(b: &mut Bencher) { std_read(b, 64*1024, 4) }
 
 benchmark_group!(benches,
-	bufref_read_16x16x4,
-	bufref_read_64x16x4,
 	bufref_read_4kx4kx4,
-	std_read_16x4,
-	std_read_64x4,
+	bufref_read_64kx4kx4,
+	bufref_read_64kx64kx4,
 	std_read_4kx4,
+	std_read_64kx4,
 );
 benchmark_main!(benches);

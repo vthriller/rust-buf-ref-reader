@@ -40,12 +40,12 @@ macro_rules! bufref {
 	}
 }
 
-bufref!(bufref_read_until_16x16, &WORDS[..], 16, 16);
-bufref!(bufref_read_until_64x16, &WORDS[..], 64, 16);
-bufref!(bufref_read_until_64x64, &WORDS[..], 64, 64);
 bufref!(bufref_read_until_4kx4k, &WORDS[..], 4096, 4096);
+bufref!(bufref_read_until_64kx4k, &WORDS[..], 64*1024, 4096);
+bufref!(bufref_read_until_64kx64k, &WORDS[..], 64*1024, 64*1024);
 
 bufref!(throttled_bufref_read_until_4kx4k, ThrottledReader(&WORDS[..]), 4096, 4096);
+bufref!(throttled_bufref_read_until_64kx4k, ThrottledReader(&WORDS[..]), 64*1024, 4096);
 bufref!(throttled_bufref_read_until_64kx64k, ThrottledReader(&WORDS[..]), 64*1024, 64*1024);
 
 macro_rules! std_read_until {
@@ -63,9 +63,8 @@ macro_rules! std_read_until {
 	}
 }
 
-std_read_until!(std_read_until_16, &WORDS[..], 16);
-std_read_until!(std_read_until_64, &WORDS[..], 64);
 std_read_until!(std_read_until_4k, &WORDS[..], 4096);
+std_read_until!(std_read_until_64k, &WORDS[..], 64*1024);
 
 std_read_until!(throttled_std_read_until_4k, ThrottledReader(&WORDS[..]), 4096);
 std_read_until!(throttled_std_read_until_64k, ThrottledReader(&WORDS[..]), 64*1024);
@@ -188,17 +187,16 @@ std_read_until_long!(std_read_until_long, &WORDS[..]);
 std_read_until_long!(throttled_std_read_until_long, ThrottledReader(&WORDS[..]));
 
 benchmark_group!(benches,
-	bufref_read_until_16x16,
-	bufref_read_until_64x16,
-	bufref_read_until_64x64,
 	bufref_read_until_4kx4k,
+	bufref_read_until_64kx4k,
+	bufref_read_until_64kx64k,
 
 	throttled_bufref_read_until_4kx4k,
+	throttled_bufref_read_until_64kx4k,
 	throttled_bufref_read_until_64kx64k,
 
-	std_read_until_16,
-	std_read_until_64,
 	std_read_until_4k,
+	std_read_until_64k,
 
 	throttled_std_read_until_4k,
 	throttled_std_read_until_64k,
