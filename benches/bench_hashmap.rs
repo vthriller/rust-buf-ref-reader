@@ -46,7 +46,7 @@ fn insert(map: &mut FnvHashMap<Vec<u8>, usize>, key: &[u8]) {
 
 fn bufref_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(BUFSIZE)
 			.build()
 			.unwrap();
@@ -65,7 +65,7 @@ fn bufref_hashmap_5(b: &mut Bencher) { bufref_hashmap(b, 5, 65000) }
 fn std_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut map = map(cap);
-		let mut r = BufReader::with_capacity(BUFSIZE, &WORDS[..]);
+		let mut r = BufReader::with_capacity(BUFSIZE, WORDS);
 		let mut buf = vec![];
 		while r.read_until(b'\n', &mut buf).unwrap() != 0 {
 			let p = prefix(&buf, n);

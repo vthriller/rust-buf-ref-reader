@@ -332,7 +332,7 @@ mod tests {
 
 	#[test]
 	fn read_until_words() {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(4)
 			.build()
 			.unwrap();
@@ -355,7 +355,7 @@ mod tests {
 	// also uses slightly bigger initial buffers
 	#[test]
 	fn read_until_words_long() {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(32)
 			.build()
 			.unwrap();
@@ -385,7 +385,7 @@ mod tests {
 	}
 
 	fn read_words(cap: usize, read: usize) {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(cap)
 			.build()
 			.unwrap();

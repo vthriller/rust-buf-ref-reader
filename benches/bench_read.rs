@@ -12,7 +12,7 @@ fn consume(data: &[u8]) {
 
 fn bufref_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
-		let mut r = BufRefReaderBuilder::new(&WORDS[..])
+		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(cap)
 			.build()
 			.unwrap();
@@ -26,7 +26,7 @@ fn bufref_read_64x4(b: &mut Bencher) { bufref_read(b, 64*1024, 4) }
 
 fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
-		let mut r = BufReader::with_capacity(cap, &WORDS[..]);
+		let mut r = BufReader::with_capacity(cap, WORDS);
 		let mut buf = Vec::with_capacity(read);
 		unsafe { buf.set_len(read); }
 		while r.read(&mut buf[..]).unwrap() != 0 {
