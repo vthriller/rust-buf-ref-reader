@@ -152,7 +152,7 @@ macro_rules! bufref_read_until_long {
 					.capacity($cap)
 					.build()
 					.unwrap();
-				while let Some(x) = r.read_until(b'Q').unwrap() {
+				while let Some(x) = r.read_until(b'q').unwrap() {
 					consume(x);
 				}
 			})
@@ -172,7 +172,7 @@ macro_rules! std_read_until_long {
 			b.iter(|| {
 				let mut r = BufReader::with_capacity($cap, $wrapped);
 				let mut buf = vec![];
-				while r.read_until(b'Q', &mut buf).unwrap() != 0 {
+				while r.read_until(b'q', &mut buf).unwrap() != 0 {
 					consume(buf.as_slice());
 					buf.clear();
 				}
