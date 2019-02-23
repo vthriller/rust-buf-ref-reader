@@ -79,6 +79,10 @@ to complete that temporary buffer first.
 
 Temporary buffer is discarded upon next read,
 and regular referencing of parts of the main buffer is resumed.
+
+It's hard, however, to turn this code into something reusable
+due to the need to return reference to the buffer before r.consume()
+and all of borrowck complications that come from use of BufReader methods.
 */
 macro_rules! std_fillbuf {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
