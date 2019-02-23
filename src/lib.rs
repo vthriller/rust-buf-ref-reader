@@ -35,7 +35,6 @@ use buf_ref_reader::*;
 let data = b"lorem ipsum dolor sit amet";
 let mut r = BufRefReaderBuilder::new(&data[..])
 	.capacity(4)
-	.increment(4)
 	.build()?;
 
 assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
@@ -95,7 +94,6 @@ pub struct BufRefReader<R> {
 	  thus making most of manipulations with `buf`'s content inconvenient.
 	*/
 	bufsize: usize,
-	incr: usize,
 	// position of data within the `buf`
 	start: usize,
 	len: usize,
@@ -124,7 +122,6 @@ See [module-level docs](index.html) for examples.
 pub struct BufRefReaderBuilder<R> {
 	src: R,
 	bufsize: usize,
-	incr: usize,
 }
 impl<R: Read> BufRefReaderBuilder<R> {
 	/// Creates new builder with given reader and default options.
@@ -132,22 +129,12 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		BufRefReaderBuilder {
 			src,
 			bufsize: 8192,
-			incr: 8192,
 		}
 	}
 
 	/// Set initial buffer capacity.
 	pub fn capacity(mut self, bufsize: usize) -> Self {
 		self.bufsize = bufsize;
-		self
-	}
-
-	/// Set buffer increments for when requested data does not fit into already existing buffer.
-	pub fn increment(mut self, incr: usize) -> Self {
-		if incr == 0 {
-			panic!("non-positive buffer increments requested")
-		}
-		self.incr = incr;
 		self
 	}
 
@@ -160,7 +147,6 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		Ok(BufRefReader {
 			src: self.src,
 			buf, bufsize,
-			incr: self.incr,
 			start: 0, len: 0,
 		})
 	}
@@ -190,7 +176,11 @@ impl<R: Read> BufRefReader<R> {
 	fn fill(&mut self) -> Result<Option<usize>, Error> {
 		if self.start == 0 && self.len == self.bufsize {
 			// this buffer is already full, expand
-			self.bufsize += self.incr;
+			/*
+			we used to have configurable increments for the bufsize
+			now though we double buffer size, just like rust's vec/raw_vec do
+			*/
+			self.bufsize *= 2;
 			let mut new = Buffer::uninitialized(self.bufsize * 2)?;
 			// see BufRefReaderBuilder::build()
 			self.bufsize = new.len() / 2;
@@ -328,7 +318,6 @@ mod tests {
 		// two spaces, three spaces, two spaces
 		let mut r = BufRefReaderBuilder::new(&b"  lorem   ipsum  "[..])
 			.capacity(4)
-			.increment(4)
 			.build()
 			.unwrap();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
@@ -345,7 +334,6 @@ mod tests {
 	fn read_until_words() {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(4)
-			.increment(4)
 			.build()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'\n');
@@ -369,7 +357,6 @@ mod tests {
 	fn read_until_words_long() {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(32)
-			.increment(32)
 			.build()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
@@ -389,7 +376,6 @@ mod tests {
 	fn read() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
-			.increment(4)
 			.build()
 			.unwrap();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
@@ -398,10 +384,9 @@ mod tests {
 		assert_eq!(r.read(1).unwrap(), None);
 	}
 
-	fn read_words(cap: usize, incr: usize, read: usize) {
+	fn read_words(cap: usize, read: usize) {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
-			.increment(incr)
 			.build()
 			.unwrap();
 		let mut words = WORDS.chunks(read);
@@ -413,12 +398,12 @@ mod tests {
 	}
 
 	#[test]
-	fn read_words_4x4x3() {
-		read_words(4, 4, 3)
+	fn read_words_4x3() {
+		read_words(4, 3)
 	}
 
 	#[test]
-	fn read_words_4x4x5() {
-		read_words(4, 4, 5)
+	fn read_words_4x5() {
+		read_words(4, 5)
 	}
 }

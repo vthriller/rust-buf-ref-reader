@@ -10,11 +10,10 @@ fn consume(data: &[u8]) {
 	black_box(data);
 }
 
-fn bufref_read(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
+fn bufref_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
-			.increment(incr)
 			.build()
 			.unwrap();
 		while let Some(chunk) = r.read(read).unwrap() {
@@ -22,9 +21,8 @@ fn bufref_read(b: &mut Bencher, cap: usize, incr: usize, read: usize) {
 		}
 	})
 }
-fn bufref_read_4x4x4(b: &mut Bencher) { bufref_read(b, 4096, 4096, 4) }
-fn bufref_read_64x4x4(b: &mut Bencher) { bufref_read(b, 64*1024, 4096, 4) }
-fn bufref_read_64x64x4(b: &mut Bencher) { bufref_read(b, 64*1024, 64*1024, 4) }
+fn bufref_read_4x4(b: &mut Bencher) { bufref_read(b, 4096, 4) }
+fn bufref_read_64x4(b: &mut Bencher) { bufref_read(b, 64*1024, 4) }
 
 fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
@@ -40,9 +38,8 @@ fn std_read_4x4(b: &mut Bencher) { std_read(b, 4096, 4) }
 fn std_read_64x4(b: &mut Bencher) { std_read(b, 64*1024, 4) }
 
 benchmark_group!(benches,
-	bufref_read_4x4x4,
-	bufref_read_64x4x4,
-	bufref_read_64x64x4,
+	bufref_read_4x4,
+	bufref_read_64x4,
 	std_read_4x4,
 	std_read_64x4,
 );
