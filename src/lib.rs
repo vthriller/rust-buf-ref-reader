@@ -124,9 +124,16 @@ impl Buffer {
 			start: 0, end: 0,
 		}
 	}
+	// make room for new data one way or the other
 	fn enlarge(&mut self) {
+		if self.free() == 0 {
+			// this buffer is already full, expand
 			self.buf.reserve(self.incr);
 			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
+		} else {
+			// reallocate and fill existing buffer
+			self.move_beginning();
+		}
 	}
 	fn len(&self) -> usize {
 		self.end - self.start
@@ -182,13 +189,7 @@ impl<R: Read> BufRefReader<R> {
 	// or None for EOF
 	#[inline]
 	fn fill(&mut self) -> io::Result<Option<usize>> {
-		if self.buf.free() == 0 {
-			// this buffer is already full, expand
-			self.buf.enlarge();
-		} else {
-			// reallocate and fill existing buffer
-			self.buf.move_beginning();
-		}
+		self.buf.enlarge();
 
 		let old_len = self.buf.len();
 
