@@ -84,34 +84,7 @@ See [module-level docs](index.html) for examples.
 */
 pub struct BufRefReader<R> {
 	src: R,
-	buf: Buffer<u8>,
-	/*
-	We keep size of a `buf`'s size on our own because `buf.len()`:
-	- returns twice the amount of data buffer can actually handle
-	  (i.e. size of mmaped region with two mirrors),
-	  which makes it confusing, and it's also an error waiting to happen,
-	- it also causes an immutable borrowing of `buf`,
-	  thus making most of manipulations with `buf`'s content inconvenient.
-	*/
-	bufsize: usize,
-	// position of data within the `buf`
-	start: usize,
-	len: usize,
-}
-
-// XXX hack; see BufRefReader.filled below
-macro_rules! filled {
-	($self:ident) => (&unsafe { $self.buf.as_mut_slice() }[ $self.start .. ($self.start + $self.len) ])
-}
-macro_rules! consume {
-	($self:ident, $n:expr) => {
-		$self.start += $n;
-		if $self.start >= $self.bufsize {
-			// keep $self.start within bufsize
-			$self.start -= $self.bufsize;
-		}
-		$self.len -= $n;
-	}
+	buf: MmapBuffer,
 }
 
 /**
@@ -140,14 +113,9 @@ impl<R: Read> BufRefReaderBuilder<R> {
 
 	/// Create actual reader.
 	pub fn build(self) -> Result<BufRefReader<R>, AllocError> {
-		let buf = Buffer::uninitialized(self.bufsize * 2)?;
-		// slice-deque will round bufsize to the nearest page size or something,
-		// so we query it back
-		let bufsize = buf.len() / 2;
 		Ok(BufRefReader {
 			src: self.src,
-			buf, bufsize,
-			start: 0, len: 0,
+			buf: MmapBuffer::new(self.bufsize)?,
 		})
 	}
 }
@@ -174,56 +142,18 @@ impl<R: Read> BufRefReader<R> {
 	// or None for EOF
 	#[inline]
 	fn fill(&mut self) -> Result<Option<usize>, Error> {
-		if self.start == 0 && self.len == self.bufsize {
-			// this buffer is already full, expand
-			/*
-			we used to have configurable increments for the bufsize
-			now though we double buffer size, just like rust's vec/raw_vec do
-			*/
-			self.bufsize *= 2;
-			let mut new = Buffer::uninitialized(self.bufsize * 2)?;
-			// see BufRefReaderBuilder::build()
-			self.bufsize = new.len() / 2;
-			// move data at the start of new buffer
-			unsafe {
-				core::ptr::copy(
-						self.buf.as_mut_slice()[self.start..].as_mut_ptr(),
-						new.as_mut_slice().as_mut_ptr(),
-						self.len,
-				);
-			}
-			self.start = 0;
-			self.buf = new;
-		}
+		self.buf.enlarge()?;
 
-		let old_len = self.len;
+		let old_len = self.buf.len();
 
-		/*
-		fill b-through-a:
-		| a--b | a--b |
-		|-b  a-|-b  a-|
-		*/
-		let end = self.start + self.len;
-		let remaining = self.bufsize - self.len;
-		match self.src.read(&mut unsafe { self.buf.as_mut_slice() }[ end .. (end+remaining) ])? {
+		match self.src.read(self.buf.appendable())? {
 			0 => Ok(None), // EOF
 			n => {
-				self.len += n;
+				self.buf.grow(n);
 				Ok(Some(old_len))
 			}
 		}
 	}
-
-	// returns usable part of `buf`
-	// for now it is manually inlined with the filled!() macro
-	// due to immutable borrowing of `self.start` (as part of `self` as a whole)
-	// which causes E0506 when we try to advance `self.start` after using `self.filled()`
-	/*
-	#[inline]
-	fn filled(&self) -> &[u8] {
-		&self.buf[ self.start .. self.end ]
-	}
-	*/
 
 	/**
 	Returns requested amount of bytes, or less if EOF prevents reader from fulfilling the request.
@@ -236,23 +166,17 @@ impl<R: Read> BufRefReader<R> {
 	*/
 	#[inline]
 	pub fn read(&mut self, n: usize) -> Result<Option<&[u8]>, Error> {
-		while n > self.len {
+		while n > self.buf.len() {
 			// fill and expand buffer until either:
 			// - buffer starts holding the requested amount of data
 			// - EOF is reached
 			if self.fill()?.is_none() { break };
 		}
-		if self.len == 0 {
+		if self.buf.len() == 0 {
 			// reading past EOF
 			Ok(None)
 		} else {
-			let output = filled!(self);
-			let output = if n < output.len() {
-				&output[..n]
-			} else {
-				output
-			};
-			consume!(self, output.len());
+			let output = self.buf.consume(n);
 			Ok(Some(output))
 		}
 	}
@@ -276,7 +200,7 @@ impl<R: Read> BufRefReader<R> {
 			// fill and expand buffer until either:
 			// - `delim` appears in the buffer
 			// - EOF is reached
-			if let Some(n) = memchr(delim, &filled!(self)[pos..]) {
+			if let Some(n) = memchr(delim, &self.buf.filled()[pos..]) {
 				len = Some(pos+n);
 				break;
 			}
@@ -288,21 +212,117 @@ impl<R: Read> BufRefReader<R> {
 
 		match len {
 			None => { // EOF
-				if self.len == 0 {
+				if self.buf.len() == 0 {
 					Ok(None)
 				} else {
-					let output = &filled!(self);
-					consume!(self, output.len());
+					let output = self.buf.consume(self.buf.len());
 					Ok(Some(output))
 				}
 			},
 			Some(len) => {
 				let len = len + 1; // also include matching delimiter
-				let output = &filled!(self)[..len];
-				consume!(self, output.len());
+				let output = self.buf.consume(len);
 				Ok(Some(output))
 			},
 		}
+	}
+}
+
+struct MmapBuffer {
+	buf: Buffer<u8>,
+	/*
+	We keep size of a `buf`'s size on our own because `buf.len()`:
+	- returns twice the amount of data buffer can actually handle
+	  (i.e. size of mmaped region with two mirrors),
+	  which makes it confusing, and it's also an error waiting to happen,
+	- it also causes an immutable borrowing of `buf`,
+	  thus making most of manipulations with `buf`'s content inconvenient.
+	*/
+	bufsize: usize,
+	// position of data within the `buf`
+	start: usize,
+	len: usize,
+}
+impl MmapBuffer {
+	fn new(size: usize) -> Result<Self, AllocError> {
+		let buf = Buffer::uninitialized(size * 2)?;
+		// slice-deque will round bufsize to the nearest page size or something,
+		// so we query it back here
+		let bufsize = buf.len() / 2;
+		Ok(MmapBuffer {
+			buf, bufsize,
+			start: 0, len: 0,
+		})
+	}
+	fn filled(&self) -> &[u8] {
+		&(unsafe {
+			self.buf.as_slice()
+		})[ self.start .. (self.start + self.len) ]
+	}
+	// make room for new data one way or the other
+	fn enlarge(&mut self) -> Result<(), AllocError> {
+		if self.start == 0 && self.len == self.bufsize {
+			/*
+			we used to have configurable increments for the bufsize
+			now though we double buffer size, just like rust's vec/raw_vec do
+			*/
+			self.bufsize *= 2;
+			let mut new = Buffer::uninitialized(self.bufsize * 2)?;
+			// see .new() for th reasons why we read bufsize back
+			self.bufsize = new.len() / 2;
+			// move data at the start of new buffer
+			unsafe {
+				core::ptr::copy(
+					self.buf.as_mut_slice()[self.start..].as_mut_ptr(),
+					new.as_mut_slice().as_mut_ptr(),
+					self.len,
+				);
+			}
+			self.start = 0;
+			self.buf = new;
+		} else {
+			// there's plenty of room in the buffer,
+			// nothing to do here
+		}
+		Ok(())
+	}
+	/*
+	return b-through-a:
+	| a--b | a--b |
+	|-b  a-|-b  a-|
+	*/
+	fn appendable(&mut self) -> &mut [u8] {
+		let end = self.start + self.len;
+		let remaining = self.bufsize - self.len;
+		&mut (unsafe {
+			self.buf.as_mut_slice()
+		})[ end .. (end+remaining) ]
+	}
+	fn grow(&mut self, amount: usize) {
+		self.len += amount;
+	}
+	/*
+	returns reference to first half of the buffer
+	up to the size of `amount`,
+	which is going to be discarded
+	after lifetime of returned slice comes to an end
+	*/
+	fn consume(&mut self, amount: usize) -> &[u8] {
+		let start = self.start;
+		let amount = std::cmp::min(amount, self.len());
+
+		self.start += amount;
+		if self.start >= self.bufsize {
+			// keep self.start within bufsize
+			self.start -= self.bufsize;
+		}
+		self.len -= amount;
+		&(unsafe {
+			self.buf.as_mut_slice()
+		})[ start .. (start+amount) ]
+	}
+	fn len(&self) -> usize {
+		self.len
 	}
 }
 
