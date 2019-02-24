@@ -166,7 +166,7 @@ impl Buffer {
 	   |-|return value
 	*/
 	fn consume(&mut self, amount: usize) -> &[u8] {
-		let amount = std::cmp::min(amount, self.end - self.start);
+		let amount = std::cmp::min(amount, self.len());
 		let start = self.start;
 		self.start += amount;
 		&self.buf[ start .. (start+amount) ]
