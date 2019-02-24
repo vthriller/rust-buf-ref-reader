@@ -126,20 +126,23 @@ impl Buffer {
 	}
 	// make room for new data one way or the other
 	fn enlarge(&mut self) {
-		if self.free() == 0 {
+		//if self.start == 0 && self.end == self.buf.len() {
+		if self.len() == self.buf.len() {
 			// this buffer is already full, expand
 			self.buf.reserve(self.incr);
 			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
 		} else {
 			// reallocate and fill existing buffer
-			self.move_beginning();
+			if self.end - self.start != 0 {
+				//self.buf.copy_within(self.start..self.end, 0)
+				copy_in_place(&mut self.buf, self.start..self.end, 0);
+			}
+			self.end -= self.start;
+			self.start = 0;
 		}
 	}
 	fn len(&self) -> usize {
 		self.end - self.start
-	}
-	fn free(&self) -> usize {
-		self.buf.len() - self.len()
 	}
 	fn filled(&self) -> &[u8] {
 		&self.buf[ self.start .. self.end ]
@@ -167,14 +170,6 @@ impl Buffer {
 		let start = self.start;
 		self.start += amount;
 		&self.buf[ start .. (start+amount) ]
-	}
-	fn move_beginning(&mut self) {
-		if self.end - self.start != 0 {
-			//self.buf.copy_within(self.start..self.end, 0)
-			copy_in_place(&mut self.buf, self.start..self.end, 0);
-		}
-		self.end -= self.start;
-		self.start = 0;
 	}
 }
 
