@@ -61,16 +61,8 @@ See [module-level docs](index.html) for examples.
 */
 pub struct BufRefReader<R> {
 	src: R,
-	buf: Vec<u8>,
+	buf: Buffer,
 	incr: usize,
-	// position of data within the `buf`
-	start: usize,
-	end: usize,
-}
-
-// XXX hack; see BufRefReader.filled below
-macro_rules! filled {
-	($self:ident) => (&$self.buf[ $self.start .. $self.end ])
 }
 
 /**
@@ -110,18 +102,72 @@ impl<R: Read> BufRefReaderBuilder<R> {
 
 	/// Create actual reader.
 	pub fn build(self) -> BufRefReader<R> {
-		let mut buf = Vec::with_capacity(self.bufsize);
-		unsafe { buf.set_len(self.bufsize); }
-
 		BufRefReader {
 			src: self.src,
-			buf,
+			buf: Buffer::new(self.bufsize),
 			incr: self.incr,
-			start: 0, end: 0,
 		}
 	}
 }
 
+struct Buffer {
+	buf: Vec<u8>,
+	// where actual data resides within the `buf`
+	start: usize,
+	end: usize,
+}
+impl Buffer {
+	fn new(size: usize) -> Self {
+		let mut buf = Vec::with_capacity(size);
+		unsafe { buf.set_len(size); }
+		Buffer {
+			buf,
+			start: 0, end: 0,
+		}
+	}
+	fn enlarge(&mut self, amount: usize) {
+		self.buf.reserve(amount);
+		unsafe { self.buf.set_len(self.buf.len() + amount) };
+	}
+	fn len(&self) -> usize {
+		self.end - self.start
+	}
+	fn filled(&self) -> &[u8] {
+		&self.buf[ self.start .. self.end ]
+	}
+	fn appendable(&mut self) -> &mut [u8] {
+		&mut self.buf[ self.end .. ]
+	}
+	fn grow(&mut self, amount: usize) {
+		self.end += amount;
+	}
+	/*
+	before:
+	|  xxxyyy |
+	   |    |end
+	   |start
+
+	after:
+	|  xxxyyy |
+	   | || |end
+	   | ||start
+	   |-|return value
+	*/
+	fn consume(&mut self, amount: usize) -> &[u8] {
+		let amount = std::cmp::min(amount, self.end - self.start);
+		let start = self.start;
+		self.start += amount;
+		&self.buf[ start .. (start+amount) ]
+	}
+	fn move_beginning(&mut self) {
+		if self.end - self.start != 0 {
+			//self.buf.copy_within(self.start..self.end, 0)
+			copy_in_place(&mut self.buf, self.start..self.end, 0);
+		}
+		self.end -= self.start;
+		self.start = 0;
+	}
+}
 
 impl<R: Read> BufRefReader<R> {
 	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
@@ -134,42 +180,24 @@ impl<R: Read> BufRefReader<R> {
 	// or None for EOF
 	#[inline]
 	fn fill(&mut self) -> io::Result<Option<usize>> {
-		if self.start == 0 && self.end == self.buf.len() {
+		if self.buf.appendable().len() == 0 {
 			// this buffer is already full, expand
-			self.buf.reserve(self.incr);
-			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
+			self.buf.enlarge(self.incr);
 		} else {
 			// reallocate and fill existing buffer
-			if self.end - self.start != 0 {
-				//self.buf.copy_within(self.start..self.end, 0)
-				copy_in_place(&mut self.buf, self.start..self.end, 0)
-			}
-			// (A)..(A+B) → 0..B
-			self.end -= self.start;
-			self.start = 0;
+			self.buf.move_beginning();
 		}
 
-		let old_end = self.end;
+		let old_len = self.buf.len();
 
-		match self.src.read(&mut self.buf[self.end..])? {
+		match self.src.read(&mut self.buf.appendable())? {
 			0 => Ok(None), // EOF
 			n => {
-				self.end += n;
-				Ok(Some(old_end - self.start))
+				self.buf.grow(n);
+				Ok(Some(old_len))
 			}
 		}
 	}
-
-	// returns usable part of `buf`
-	// for now it is manually inlined with the filled!() macro
-	// due to immutable borrowing of `self.start` (as part of `self` as a whole)
-	// which causes E0506 when we try to advance `self.start` after using `self.filled()`
-	/*
-	#[inline]
-	fn filled(&self) -> &[u8] {
-		&self.buf[ self.start .. self.end ]
-	}
-	*/
 
 	/**
 	Returns requested amount of bytes, or less if EOF prevents reader from fulfilling the request.
@@ -182,23 +210,17 @@ impl<R: Read> BufRefReader<R> {
 	*/
 	#[inline]
 	pub fn read(&mut self, n: usize) -> io::Result<Option<&[u8]>> {
-		while n > self.end - self.start {
+		while n > self.buf.len() {
 			// fill and expand buffer until either:
 			// - buffer starts holding the requested amount of data
 			// - EOF is reached
 			if self.fill()?.is_none() { break };
 		}
-		if self.start == self.end {
+		if self.buf.len() == 0 {
 			// reading past EOF
 			Ok(None)
 		} else {
-			let output = filled!(self);
-			let output = if n < output.len() {
-				&output[..n]
-			} else {
-				output
-			};
-			self.start += output.len();
+			let output = self.buf.consume(n);
 			Ok(Some(output))
 		}
 	}
@@ -222,7 +244,7 @@ impl<R: Read> BufRefReader<R> {
 			// fill and expand buffer until either:
 			// - `delim` appears in the buffer
 			// - EOF is reached
-			if let Some(n) = memchr(delim, &filled!(self)[pos..]) {
+			if let Some(n) = memchr(delim, &self.buf.filled()[pos..]) {
 				len = Some(pos+n);
 				break;
 			}
@@ -234,18 +256,16 @@ impl<R: Read> BufRefReader<R> {
 
 		match len {
 			None => { // EOF
-				if self.start == self.end {
+				if self.buf.len() == 0 {
 					Ok(None)
 				} else {
-					let output = &filled!(self);
-					self.start = self.end;
+					let output = self.buf.consume(self.buf.len());
 					Ok(Some(output))
 				}
 			},
 			Some(len) => {
-				let len = len + 1; // also include matching delimiter
-				let output = &filled!(self)[..len];
-				self.start += len;
+				// also include matching delimiter
+				let output = self.buf.consume(len + 1);
 				Ok(Some(output))
 			},
 		}
