@@ -62,7 +62,6 @@ See [module-level docs](index.html) for examples.
 pub struct BufRefReader<R> {
 	src: R,
 	buf: Buffer,
-	incr: usize,
 }
 
 /**
@@ -104,30 +103,30 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	pub fn build(self) -> BufRefReader<R> {
 		BufRefReader {
 			src: self.src,
-			buf: Buffer::new(self.bufsize),
-			incr: self.incr,
+			buf: Buffer::new(self.bufsize, self.incr),
 		}
 	}
 }
 
 struct Buffer {
 	buf: Vec<u8>,
+	incr: usize,
 	// where actual data resides within the `buf`
 	start: usize,
 	end: usize,
 }
 impl Buffer {
-	fn new(size: usize) -> Self {
+	fn new(size: usize, incr: usize) -> Self {
 		let mut buf = Vec::with_capacity(size);
 		unsafe { buf.set_len(size); }
 		Buffer {
-			buf,
+			buf, incr,
 			start: 0, end: 0,
 		}
 	}
-	fn enlarge(&mut self, amount: usize) {
-		self.buf.reserve(amount);
-		unsafe { self.buf.set_len(self.buf.len() + amount) };
+	fn enlarge(&mut self) {
+		self.buf.reserve(self.incr);
+		unsafe { self.buf.set_len(self.buf.len() + self.incr) };
 	}
 	fn len(&self) -> usize {
 		self.end - self.start
@@ -185,7 +184,7 @@ impl<R: Read> BufRefReader<R> {
 	fn fill(&mut self) -> io::Result<Option<usize>> {
 		if self.buf.free() == 0 {
 			// this buffer is already full, expand
-			self.buf.enlarge(self.incr);
+			self.buf.enlarge();
 		} else {
 			// reallocate and fill existing buffer
 			self.buf.move_beginning();
