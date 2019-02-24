@@ -125,8 +125,8 @@ impl Buffer {
 		}
 	}
 	fn enlarge(&mut self) {
-		self.buf.reserve(self.incr);
-		unsafe { self.buf.set_len(self.buf.len() + self.incr) };
+			self.buf.reserve(self.incr);
+			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
 	}
 	fn len(&self) -> usize {
 		self.end - self.start
