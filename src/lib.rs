@@ -132,6 +132,9 @@ impl Buffer {
 	fn len(&self) -> usize {
 		self.end - self.start
 	}
+	fn free(&self) -> usize {
+		self.buf.len() - self.len()
+	}
 	fn filled(&self) -> &[u8] {
 		&self.buf[ self.start .. self.end ]
 	}
@@ -180,7 +183,7 @@ impl<R: Read> BufRefReader<R> {
 	// or None for EOF
 	#[inline]
 	fn fill(&mut self) -> io::Result<Option<usize>> {
-		if self.buf.appendable().len() == 0 {
+		if self.buf.free() == 0 {
 			// this buffer is already full, expand
 			self.buf.enlarge(self.incr);
 		} else {
