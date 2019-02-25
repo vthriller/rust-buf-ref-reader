@@ -37,3 +37,7 @@ harness = false
 [[bench]]
 name = "bench_read_until"
 harness = false
+
+[[bench]]
+name = "buffer"
+harness = false
