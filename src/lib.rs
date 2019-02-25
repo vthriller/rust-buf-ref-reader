@@ -58,6 +58,7 @@ use std::io::{self, Read};
 use memchr::memchr;
 
 mod buffer;
+use buffer::VecBuffer;
 use buffer::MmapBuffer;
 use slice_deque::AllocError;
 
@@ -96,10 +97,16 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	/// Create actual reader.
+<<<<<<< HEAD
 	pub fn build(self) -> Result<BufRefReader<R, MmapBuffer>, AllocError> {
+	pub fn build(self) -> BufRefReader<R, VecBuffer> {
+>>>>>>> buf-factored-out
 		Ok(BufRefReader {
 			src: self.src,
+<<<<<<< HEAD
 			buf: MmapBuffer::new(self.bufsize)?,
+			buf: VecBuffer::new(self.bufsize),
+>>>>>>> buf-factored-out
 		})
 	}
 }
@@ -115,9 +122,15 @@ quick_error! {
 	}
 }
 
+<<<<<<< HEAD
 impl<R: Read> BufRefReader<R, MmapBuffer> {
+impl<R: Read> BufRefReader<R, VecBuffer> {
+>>>>>>> buf-factored-out
 	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
+<<<<<<< HEAD
 	pub fn new(src: R) -> Result<BufRefReader<R, MmapBuffer>, AllocError> {
+	pub fn new(src: R) -> BufRefReader<R, VecBuffer> {
+>>>>>>> buf-factored-out
 		BufRefReaderBuilder::new(src)
 			.build()
 	}
