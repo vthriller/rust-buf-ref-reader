@@ -30,23 +30,33 @@ Read data word by word:
 ```
 use buf_ref_reader::*;
 
-# fn main() -> Result<(), Error> {
-// &[u8] implements Read, hence we use it as our data source for this example
-let data = b"lorem ipsum dolor sit amet";
-let mut r = BufRefReaderBuilder::new(&data[..])
-	.capacity(4)
-	.build::<MmapBuffer>()?;
+fn read<B: Buffer>() -> Result<(), Error>
+where
+	Error: From<B::Error>,
+	// add this if you plan to `unwrap()` errors returned by `read()` et al.
+	//B::Error: std::fmt::Debug,
+{
+	// &[u8] implements Read, hence we use it as our data source for this example
+	let data = b"lorem ipsum dolor sit amet";
+	let mut r = BufRefReaderBuilder::new(&data[..])
+		.capacity(4)
+		.build::<B>()?;
 
-assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"ipsum "[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"dolor "[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"sit "[..]));
-assert_eq!(r.read_until(b' ')?, Some(&b"amet"[..]));
-assert_eq!(r.read_until(b' ')?, None); // EOF
-assert_eq!(r.read_until(b' ')?, None);
+	assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
+	assert_eq!(r.read_until(b' ')?, Some(&b"ipsum "[..]));
+	assert_eq!(r.read_until(b' ')?, Some(&b"dolor "[..]));
+	assert_eq!(r.read_until(b' ')?, Some(&b"sit "[..]));
+	assert_eq!(r.read_until(b' ')?, Some(&b"amet"[..]));
+	assert_eq!(r.read_until(b' ')?, None); // EOF
+	assert_eq!(r.read_until(b' ')?, None);
 
-# Ok(())
-# }
+	Ok(())
+}
+
+fn main() {
+	read::<VecBuffer>().unwrap();
+	read::<MmapBuffer>().unwrap();
+}
 ```
 */
 
