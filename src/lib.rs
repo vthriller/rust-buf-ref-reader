@@ -31,7 +31,6 @@ use buf_ref_reader::BufRefReaderBuilder;
 let data = b"lorem ipsum dolor sit amet";
 let mut r = BufRefReaderBuilder::new(&data[..])
 	.capacity(4)
-	.increment(4)
 	.build();
 
 assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
@@ -73,7 +72,6 @@ See [module-level docs](index.html) for examples.
 pub struct BufRefReaderBuilder<R> {
 	src: R,
 	bufsize: usize,
-	incr: usize,
 }
 impl<R: Read> BufRefReaderBuilder<R> {
 	/// Creates new builder with given reader and default options.
@@ -81,7 +79,6 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		BufRefReaderBuilder {
 			src,
 			bufsize: 8192,
-			incr: 8192,
 		}
 	}
 
@@ -91,20 +88,11 @@ impl<R: Read> BufRefReaderBuilder<R> {
 		self
 	}
 
-	/// Set buffer increments for when requested data does not fit into already existing buffer.
-	pub fn increment(mut self, incr: usize) -> Self {
-		if incr == 0 {
-			panic!("non-positive buffer increments requested")
-		}
-		self.incr = incr;
-		self
-	}
-
 	/// Create actual reader.
 	pub fn build(self) -> BufRefReader<R> {
 		BufRefReader {
 			src: self.src,
-			buf: VecBuffer::new(self.bufsize, self.incr),
+			buf: VecBuffer::new(self.bufsize),
 		}
 	}
 }
@@ -218,7 +206,6 @@ mod tests {
 		// two spaces, three spaces, two spaces
 		let mut r = BufRefReaderBuilder::new(&b"  lorem   ipsum  "[..])
 			.capacity(4)
-			.increment(4)
 			.build();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
@@ -234,7 +221,6 @@ mod tests {
 	fn read_until_words() {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(4)
-			.increment(4)
 			.build();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
@@ -257,7 +243,6 @@ mod tests {
 	fn read_until_words_long() {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(32)
-			.increment(32)
 			.build();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
@@ -276,7 +261,6 @@ mod tests {
 	fn read() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
-			.increment(4)
 			.build();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
@@ -284,10 +268,9 @@ mod tests {
 		assert_eq!(r.read(1).unwrap(), None);
 	}
 
-	fn read_words(cap: usize, incr: usize, read: usize) {
+	fn read_words(cap: usize, read: usize) {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(cap)
-			.increment(incr)
 			.build();
 		let mut words = WORDS.chunks(read);
 		while let Ok(Some(slice_buf)) = r.read(read) {
@@ -298,12 +281,12 @@ mod tests {
 	}
 
 	#[test]
-	fn read_words_4x4x3() {
-		read_words(4, 4, 3)
+	fn read_words_4x3() {
+		read_words(4, 3)
 	}
 
 	#[test]
-	fn read_words_4x4x5() {
-		read_words(4, 4, 5)
+	fn read_words_4x5() {
+		read_words(4, 5)
 	}
 }

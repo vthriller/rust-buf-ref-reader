@@ -48,7 +48,6 @@ fn bufref_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(&WORDS[..])
 			.capacity(BUFSIZE)
-			.increment(BUFSIZE)
 			.build();
 		let mut map = map(cap);
 		while let Some(line) = r.read_until(b'\n').unwrap() {

@@ -24,12 +24,11 @@ fn consume(data: &[u8]) {
 }
 
 macro_rules! bufref {
-	($fname:ident, $wrapped:expr, $cap:expr, $incr:expr) => {
+	($fname:ident, $wrapped:expr, $cap:expr) => {
 		fn $fname(b: &mut Bencher) {
 			b.iter(|| {
 				let mut r = BufRefReaderBuilder::new($wrapped)
 					.capacity($cap)
-					.increment($incr)
 					.build();
 				while let Some(line) = r.read_until(b'\n').unwrap() {
 					consume(line);
@@ -39,13 +38,12 @@ macro_rules! bufref {
 	}
 }
 
-bufref!(bufref_read_until_16x16, &WORDS[..], 16, 16);
-bufref!(bufref_read_until_64x16, &WORDS[..], 64, 16);
-bufref!(bufref_read_until_64x64, &WORDS[..], 64, 64);
-bufref!(bufref_read_until_4kx4k, &WORDS[..], 4096, 4096);
+bufref!(bufref_read_until_16, &WORDS[..], 16);
+bufref!(bufref_read_until_64, &WORDS[..], 64);
+bufref!(bufref_read_until_4k, &WORDS[..], 4096);
 
-bufref!(throttled_bufref_read_until_4kx4k, ThrottledReader(&WORDS[..]), 4096, 4096);
-bufref!(throttled_bufref_read_until_64kx64k, ThrottledReader(&WORDS[..]), 64*1024, 64*1024);
+bufref!(throttled_bufref_read_until_4k, ThrottledReader(&WORDS[..]), 4096);
+bufref!(throttled_bufref_read_until_64k, ThrottledReader(&WORDS[..]), 64*1024);
 
 macro_rules! std_read_until {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
@@ -152,7 +150,6 @@ macro_rules! bufref_read_until_long {
 			b.iter(|| {
 				let mut r = BufRefReaderBuilder::new($wrapped)
 					.capacity(4096)
-					.increment(4096)
 					.build();
 				while let Some(x) = r.read_until(b'Q').unwrap() {
 					consume(x);
@@ -186,13 +183,12 @@ std_read_until_long!(std_read_until_long, &WORDS[..]);
 std_read_until_long!(throttled_std_read_until_long, ThrottledReader(&WORDS[..]));
 
 benchmark_group!(benches,
-	bufref_read_until_16x16,
-	bufref_read_until_64x16,
-	bufref_read_until_64x64,
-	bufref_read_until_4kx4k,
+	bufref_read_until_16,
+	bufref_read_until_64,
+	bufref_read_until_4k,
 
-	throttled_bufref_read_until_4kx4k,
-	throttled_bufref_read_until_64kx64k,
+	throttled_bufref_read_until_4k,
+	throttled_bufref_read_until_64k,
 
 	std_read_until_16,
 	std_read_until_64,

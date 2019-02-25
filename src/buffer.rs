@@ -3,17 +3,16 @@ use copy_in_place::*;
 
 pub struct VecBuffer {
 	buf: Vec<u8>,
-	incr: usize,
 	// where actual data resides within the `buf`
 	start: usize,
 	end: usize,
 }
 impl VecBuffer {
-	pub(crate) fn new(size: usize, incr: usize) -> Self {
+	pub(crate) fn new(size: usize) -> Self {
 		let mut buf = Vec::with_capacity(size);
 		unsafe { buf.set_len(size); }
 		VecBuffer {
-			buf, incr,
+			buf,
 			start: 0, end: 0,
 		}
 	}
@@ -21,9 +20,9 @@ impl VecBuffer {
 	pub(crate) fn enlarge(&mut self) {
 		//if self.start == 0 && self.end == self.buf.len() {
 		if self.len() == self.buf.len() {
-			// this buffer is already full, expand
-			self.buf.reserve(self.incr);
-			unsafe { self.buf.set_len(self.buf.len() + self.incr) };
+			// this buffer is already full, double its size
+			self.buf.reserve(self.buf.len());
+			unsafe { self.buf.set_len(self.buf.len() * 2) };
 		} else {
 			// reallocate and fill existing buffer
 			if self.end - self.start != 0 {
