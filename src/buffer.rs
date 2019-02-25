@@ -1,18 +1,18 @@
 // https://github.com/rust-lang/rust/issues/54236
 use copy_in_place::*;
 
-pub struct Buffer {
+pub struct VecBuffer {
 	buf: Vec<u8>,
 	incr: usize,
 	// where actual data resides within the `buf`
 	start: usize,
 	end: usize,
 }
-impl Buffer {
+impl VecBuffer {
 	pub(crate) fn new(size: usize, incr: usize) -> Self {
 		let mut buf = Vec::with_capacity(size);
 		unsafe { buf.set_len(size); }
-		Buffer {
+		VecBuffer {
 			buf, incr,
 			start: 0, end: 0,
 		}

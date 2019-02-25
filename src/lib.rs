@@ -53,7 +53,7 @@ use std::io::{self, Read};
 use memchr::memchr;
 
 mod buffer;
-use buffer::Buffer;
+use buffer::VecBuffer;
 
 /**
 Buffering reader.
@@ -62,7 +62,7 @@ See [module-level docs](index.html) for examples.
 */
 pub struct BufRefReader<R> {
 	src: R,
-	buf: Buffer,
+	buf: VecBuffer,
 }
 
 /**
@@ -104,7 +104,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	pub fn build(self) -> BufRefReader<R> {
 		BufRefReader {
 			src: self.src,
-			buf: Buffer::new(self.bufsize, self.incr),
+			buf: VecBuffer::new(self.bufsize, self.incr),
 		}
 	}
 }
