@@ -66,9 +66,9 @@ Buffering reader.
 
 See [module-level docs](index.html) for examples.
 */
-pub struct BufRefReader<R> {
+pub struct BufRefReader<R, B> {
 	src: R,
-	buf: MmapBuffer,
+	buf: B,
 }
 
 /**
@@ -96,7 +96,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	/// Create actual reader.
-	pub fn build(self) -> Result<BufRefReader<R>, AllocError> {
+	pub fn build(self) -> Result<BufRefReader<R, MmapBuffer>, AllocError> {
 		Ok(BufRefReader {
 			src: self.src,
 			buf: MmapBuffer::new(self.bufsize)?,
@@ -115,9 +115,9 @@ quick_error! {
 	}
 }
 
-impl<R: Read> BufRefReader<R> {
+impl<R: Read> BufRefReader<R, MmapBuffer> {
 	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
-	pub fn new(src: R) -> Result<BufRefReader<R>, AllocError> {
+	pub fn new(src: R) -> Result<BufRefReader<R, MmapBuffer>, AllocError> {
 		BufRefReaderBuilder::new(src)
 			.build()
 	}
