@@ -59,9 +59,9 @@ Buffering reader.
 
 See [module-level docs](index.html) for examples.
 */
-pub struct BufRefReader<R> {
+pub struct BufRefReader<R, B> {
 	src: R,
-	buf: VecBuffer,
+	buf: B,
 }
 
 /**
@@ -89,7 +89,7 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	/// Create actual reader.
-	pub fn build(self) -> BufRefReader<R> {
+	pub fn build(self) -> BufRefReader<R, VecBuffer> {
 		BufRefReader {
 			src: self.src,
 			buf: VecBuffer::new(self.bufsize),
@@ -97,9 +97,9 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 }
 
-impl<R: Read> BufRefReader<R> {
+impl<R: Read> BufRefReader<R, VecBuffer> {
 	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
-	pub fn new(src: R) -> BufRefReader<R> {
+	pub fn new(src: R) -> BufRefReader<R, VecBuffer> {
 		BufRefReaderBuilder::new(src)
 			.build()
 	}
