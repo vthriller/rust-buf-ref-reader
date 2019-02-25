@@ -33,8 +33,9 @@ pub struct MmapBuffer {
 	start: usize,
 	len: usize,
 }
-impl MmapBuffer {
-	pub(crate) fn new(size: usize) -> Result<Self, AllocError> {
+impl super::Buffer for MmapBuffer {
+	type Error = AllocError;
+	fn new(size: usize) -> Result<Self, AllocError> {
 		let buf = Buffer::uninitialized(size * 2)?;
 		// slice-deque will round bufsize to the nearest page size or something,
 		// so we query it back here
@@ -44,13 +45,13 @@ impl MmapBuffer {
 			start: 0, len: 0,
 		})
 	}
-	pub(crate) fn filled(&self) -> &[u8] {
+	fn filled(&self) -> &[u8] {
 		&(unsafe {
 			self.buf.as_slice()
 		})[ self.start .. (self.start + self.len) ]
 	}
 	// make room for new data one way or the other
-	pub(crate) fn enlarge(&mut self) -> Result<(), AllocError> {
+	fn enlarge(&mut self) -> Result<(), AllocError> {
 		if self.start == 0 && self.len == self.bufsize {
 			/*
 			we used to have configurable increments for the bufsize
@@ -81,14 +82,14 @@ impl MmapBuffer {
 	| a--b | a--b |
 	|-b  a-|-b  a-|
 	*/
-	pub(crate) fn appendable(&mut self) -> &mut [u8] {
+	fn appendable(&mut self) -> &mut [u8] {
 		let end = self.start + self.len;
 		let remaining = self.bufsize - self.len;
 		&mut (unsafe {
 			self.buf.as_mut_slice()
 		})[ end .. (end+remaining) ]
 	}
-	pub(crate) fn grow(&mut self, amount: usize) {
+	fn grow(&mut self, amount: usize) {
 		self.len += amount;
 	}
 	/*
@@ -97,7 +98,7 @@ impl MmapBuffer {
 	which is going to be discarded
 	after lifetime of returned slice comes to an end
 	*/
-	pub(crate) fn consume(&mut self, amount: usize) -> &[u8] {
+	fn consume(&mut self, amount: usize) -> &[u8] {
 		let start = self.start;
 		let amount = std::cmp::min(amount, self.len());
 
@@ -111,7 +112,7 @@ impl MmapBuffer {
 			self.buf.as_mut_slice()
 		})[ start .. (start+amount) ]
 	}
-	pub(crate) fn len(&self) -> usize {
+	fn len(&self) -> usize {
 		self.len
 	}
 }

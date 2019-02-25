@@ -35,7 +35,7 @@ use buf_ref_reader::*;
 let data = b"lorem ipsum dolor sit amet";
 let mut r = BufRefReaderBuilder::new(&data[..])
 	.capacity(4)
-	.build()?;
+	.build::<MmapBuffer>()?;
 
 assert_eq!(r.read_until(b' ')?, Some(&b"lorem "[..]));
 assert_eq!(r.read_until(b' ')?, Some(&b"ipsum "[..]));
@@ -58,9 +58,14 @@ use std::io::{self, Read};
 use memchr::memchr;
 
 mod buffer;
-use buffer::VecBuffer;
-use buffer::MmapBuffer;
+pub use buffer::{
+	Buffer,
+	VecBuffer,
+	MmapBuffer,
+};
 use slice_deque::AllocError;
+
+use std::convert::From;
 
 /**
 Buffering reader.
@@ -97,16 +102,10 @@ impl<R: Read> BufRefReaderBuilder<R> {
 	}
 
 	/// Create actual reader.
-<<<<<<< HEAD
-	pub fn build(self) -> Result<BufRefReader<R, MmapBuffer>, AllocError> {
-	pub fn build(self) -> BufRefReader<R, VecBuffer> {
->>>>>>> buf-factored-out
+	pub fn build<B: Buffer>(self) -> Result<BufRefReader<R, B>, B::Error> {
 		Ok(BufRefReader {
 			src: self.src,
-<<<<<<< HEAD
-			buf: MmapBuffer::new(self.bufsize)?,
-			buf: VecBuffer::new(self.bufsize),
->>>>>>> buf-factored-out
+			buf: B::new(self.bufsize)?,
 		})
 	}
 }
@@ -121,16 +120,18 @@ quick_error! {
 		Buf(err: AllocError) { from() }
 	}
 }
+impl From<()> for Error {
+	// VecBuffer never emits errors, it only panics
+	fn from(_: ()) -> Self {
+		unimplemented!()
+	}
+}
 
-<<<<<<< HEAD
-impl<R: Read> BufRefReader<R, MmapBuffer> {
-impl<R: Read> BufRefReader<R, VecBuffer> {
->>>>>>> buf-factored-out
+impl<R: Read, B: Buffer> BufRefReader<R, B>
+where Error: From<B::Error>
+{
 	/// Creates buffered reader with default options. Look for [`BufRefReaderBuilder`](struct.BufRefReaderBuilder.html) for tweaks.
-<<<<<<< HEAD
-	pub fn new(src: R) -> Result<BufRefReader<R, MmapBuffer>, AllocError> {
-	pub fn new(src: R) -> BufRefReader<R, VecBuffer> {
->>>>>>> buf-factored-out
+	pub fn new(src: R) -> Result<BufRefReader<R, B>, B::Error> {
 		BufRefReaderBuilder::new(src)
 			.build()
 	}
@@ -237,7 +238,7 @@ mod tests {
 		// two spaces, three spaces, two spaces
 		let mut r = BufRefReaderBuilder::new(&b"  lorem   ipsum  "[..])
 			.capacity(4)
-			.build()
+			.build::<VecBuffer>()
 			.unwrap();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
@@ -253,7 +254,7 @@ mod tests {
 	fn read_until_words() {
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(4)
-			.build()
+			.build::<VecBuffer>()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
@@ -276,7 +277,7 @@ mod tests {
 	fn read_until_words_long() {
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(32)
-			.build()
+			.build::<VecBuffer>()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
@@ -295,7 +296,7 @@ mod tests {
 	fn read() {
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
-			.build()
+			.build::<VecBuffer>()
 			.unwrap();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
@@ -306,7 +307,7 @@ mod tests {
 	fn read_words(cap: usize, read: usize) {
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(cap)
-			.build()
+			.build::<VecBuffer>()
 			.unwrap();
 		let mut words = WORDS.chunks(read);
 		while let Ok(Some(slice_buf)) = r.read(read) {

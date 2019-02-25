@@ -7,17 +7,18 @@ pub struct VecBuffer {
 	start: usize,
 	end: usize,
 }
-impl VecBuffer {
-	pub(crate) fn new(size: usize) -> Self {
+impl super::Buffer for VecBuffer {
+	type Error = ();
+	fn new(size: usize) -> Result<Self, ()> {
 		let mut buf = Vec::with_capacity(size);
 		unsafe { buf.set_len(size); }
-		VecBuffer {
+		Ok(VecBuffer {
 			buf,
 			start: 0, end: 0,
-		}
+		})
 	}
 	// make room for new data one way or the other
-	pub(crate) fn enlarge(&mut self) {
+	fn enlarge(&mut self) -> Result<(), ()> {
 		//if self.start == 0 && self.end == self.buf.len() {
 		if self.len() == self.buf.len() {
 			// this buffer is already full, double its size
@@ -32,17 +33,18 @@ impl VecBuffer {
 			self.end -= self.start;
 			self.start = 0;
 		}
+		Ok(())
 	}
-	pub(crate) fn len(&self) -> usize {
+	fn len(&self) -> usize {
 		self.end - self.start
 	}
-	pub(crate) fn filled(&self) -> &[u8] {
+	fn filled(&self) -> &[u8] {
 		&self.buf[ self.start .. self.end ]
 	}
-	pub(crate) fn appendable(&mut self) -> &mut [u8] {
+	fn appendable(&mut self) -> &mut [u8] {
 		&mut self.buf[ self.end .. ]
 	}
-	pub(crate) fn grow(&mut self, amount: usize) {
+	fn grow(&mut self, amount: usize) {
 		self.end += amount;
 	}
 	/*
@@ -57,7 +59,7 @@ impl VecBuffer {
 	   | ||start
 	   |-|return value
 	*/
-	pub(crate) fn consume(&mut self, amount: usize) -> &[u8] {
+	fn consume(&mut self, amount: usize) -> &[u8] {
 		let amount = std::cmp::min(amount, self.len());
 		let start = self.start;
 		self.start += amount;
