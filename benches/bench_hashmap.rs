@@ -44,11 +44,15 @@ fn insert(map: &mut FnvHashMap<Vec<u8>, usize>, key: &[u8]) {
 	}
 }
 
-fn bufref_hashmap(b: &mut Bencher, n: usize, cap: usize) {
+fn bufref_hashmap<B: Buffer>(b: &mut Bencher, n: usize, cap: usize)
+where
+	B::Error: std::fmt::Debug,
+	Error: From<B::Error>,
+{
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(BUFSIZE)
-			.build()
+			.build::<B>()
 			.unwrap();
 		let mut map = map(cap);
 		while let Some(line) = r.read_until(b'\n').unwrap() {
@@ -57,10 +61,14 @@ fn bufref_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-fn bufref_hashmap_2(b: &mut Bencher) { bufref_hashmap(b, 2, 750) }
-fn bufref_hashmap_3(b: &mut Bencher) { bufref_hashmap(b, 3, 6500) }
-fn bufref_hashmap_4(b: &mut Bencher) { bufref_hashmap(b, 4, 28000) }
-fn bufref_hashmap_5(b: &mut Bencher) { bufref_hashmap(b, 5, 65000) }
+fn bufref_hashmap_vec_2(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 2, 750) }
+fn bufref_hashmap_vec_3(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 3, 6500) }
+fn bufref_hashmap_vec_4(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 4, 28000) }
+fn bufref_hashmap_vec_5(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 5, 65000) }
+fn bufref_hashmap_mmap_2(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 2, 750) }
+fn bufref_hashmap_mmap_3(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 3, 6500) }
+fn bufref_hashmap_mmap_4(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 4, 28000) }
+fn bufref_hashmap_mmap_5(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 5, 65000) }
 
 fn std_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
@@ -109,10 +117,14 @@ fn baseline_hashmap_4(b: &mut Bencher) { baseline_hashmap(b, 4, 28000) }
 fn baseline_hashmap_5(b: &mut Bencher) { baseline_hashmap(b, 5, 65000) }
 
 benchmark_group!(benches,
-	bufref_hashmap_2,
-	bufref_hashmap_3,
-	bufref_hashmap_4,
-	bufref_hashmap_5,
+	bufref_hashmap_vec_2,
+	bufref_hashmap_vec_3,
+	bufref_hashmap_vec_4,
+	bufref_hashmap_vec_5,
+	bufref_hashmap_mmap_2,
+	bufref_hashmap_mmap_3,
+	bufref_hashmap_mmap_4,
+	bufref_hashmap_mmap_5,
 	std_hashmap_2,
 	std_hashmap_3,
 	std_hashmap_4,

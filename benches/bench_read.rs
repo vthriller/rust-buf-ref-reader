@@ -10,19 +10,25 @@ fn consume(data: &[u8]) {
 	black_box(data);
 }
 
-fn bufref_read(b: &mut Bencher, cap: usize, read: usize) {
+fn bufref_read<B: Buffer>(b: &mut Bencher, cap: usize, read: usize)
+where
+	B::Error: std::fmt::Debug,
+	Error: From<B::Error>,
+{
 	b.iter(|| {
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(cap)
-			.build()
+			.build::<B>()
 			.unwrap();
 		while let Some(chunk) = r.read(read).unwrap() {
 			consume(chunk);
 		}
 	})
 }
-fn bufref_read_4x4(b: &mut Bencher) { bufref_read(b, 4096, 4) }
-fn bufref_read_64x4(b: &mut Bencher) { bufref_read(b, 64*1024, 4) }
+fn bufref_read_vec_4x4(b: &mut Bencher)   { bufref_read::<VecBuffer> (b, 4096, 4) }
+fn bufref_read_vec_64x4(b: &mut Bencher)  { bufref_read::<VecBuffer> (b, 64*1024, 4) }
+fn bufref_read_mmap_4x4(b: &mut Bencher)  { bufref_read::<MmapBuffer>(b, 4096, 4) }
+fn bufref_read_mmap_64x4(b: &mut Bencher) { bufref_read::<MmapBuffer>(b, 64*1024, 4) }
 
 fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
@@ -38,8 +44,10 @@ fn std_read_4x4(b: &mut Bencher) { std_read(b, 4096, 4) }
 fn std_read_64x4(b: &mut Bencher) { std_read(b, 64*1024, 4) }
 
 benchmark_group!(benches,
-	bufref_read_4x4,
-	bufref_read_64x4,
+	bufref_read_vec_4x4,
+	bufref_read_vec_64x4,
+	bufref_read_mmap_4x4,
+	bufref_read_mmap_64x4,
 	std_read_4x4,
 	std_read_64x4,
 );

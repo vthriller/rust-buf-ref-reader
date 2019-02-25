@@ -232,13 +232,17 @@ static WORDS: &'static [u8] = include_bytes!("/usr/share/dict/words");
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use std::fmt::Debug;
 
-	#[test]
-	fn read_until_empty_lines() {
+	fn read_until_empty_lines<B: Buffer>()
+	where
+		B::Error: Debug,
+		Error: From<B::Error>,
+	{
 		// two spaces, three spaces, two spaces
 		let mut r = BufRefReaderBuilder::new(&b"  lorem   ipsum  "[..])
 			.capacity(4)
-			.build::<VecBuffer>()
+			.build::<B>()
 			.unwrap();
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
 		assert_eq!(r.read_until(b' ').unwrap(), Some(&b" "[..]));
@@ -250,11 +254,17 @@ mod tests {
 		assert_eq!(r.read_until(b' ').unwrap(), None);
 	}
 
-	#[test]
-	fn read_until_words() {
+	#[test] fn read_until_empty_lines_vec()  { read_until_empty_lines::<VecBuffer>() }
+	#[test] fn read_until_empty_lines_mmap() { read_until_empty_lines::<MmapBuffer>() }
+
+	fn read_until_words<B: Buffer>()
+	where
+		B::Error: Debug,
+		Error: From<B::Error>,
+	{
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(4)
-			.build::<VecBuffer>()
+			.build::<B>()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
@@ -271,13 +281,19 @@ mod tests {
 		assert_eq!(words.next(), None);
 	}
 
+	#[test] fn read_until_words_vec()  { read_until_words::<VecBuffer>() }
+	#[test] fn read_until_words_mmap() { read_until_words::<MmapBuffer>() }
+
 	// like read_until_words, but splits by rarest character, which is b'Q'
 	// also uses slightly bigger initial buffers
-	#[test]
-	fn read_until_words_long() {
+	fn read_until_words_long<B: Buffer>()
+	where
+		B::Error: Debug,
+		Error: From<B::Error>,
+	{
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(32)
-			.build::<VecBuffer>()
+			.build::<B>()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
@@ -292,11 +308,17 @@ mod tests {
 		assert_eq!(words.next(), None);
 	}
 
-	#[test]
-	fn read() {
+	#[test] fn read_until_words_long_vec()  { read_until_words_long::<VecBuffer>() }
+	#[test] fn read_until_words_long_mmap() { read_until_words_long::<MmapBuffer>() }
+
+	fn read<B: Buffer>()
+	where
+		B::Error: Debug,
+		Error: From<B::Error>,
+	{
 		let mut r = BufRefReaderBuilder::new(&b"lorem ipsum dolor sit amet"[..])
 			.capacity(4)
-			.build::<VecBuffer>()
+			.build::<B>()
 			.unwrap();
 		assert_eq!(r.read(5).unwrap(), Some(&b"lorem"[..]));
 		assert_eq!(r.read(6).unwrap(), Some(&b" ipsum"[..]));
@@ -304,10 +326,17 @@ mod tests {
 		assert_eq!(r.read(1).unwrap(), None);
 	}
 
-	fn read_words(cap: usize, read: usize) {
+	#[test] fn read_vec()  { read::<VecBuffer>() }
+	#[test] fn read_mmap() { read::<MmapBuffer>() }
+
+	fn read_words<B: Buffer>(cap: usize, read: usize)
+	where
+		B::Error: Debug,
+		Error: From<B::Error>,
+	{
 		let mut r = BufRefReaderBuilder::new(WORDS)
 			.capacity(cap)
-			.build::<VecBuffer>()
+			.build::<B>()
 			.unwrap();
 		let mut words = WORDS.chunks(read);
 		while let Ok(Some(slice_buf)) = r.read(read) {
@@ -317,13 +346,8 @@ mod tests {
 		assert_eq!(words.next(), None);
 	}
 
-	#[test]
-	fn read_words_4x3() {
-		read_words(4, 3)
-	}
-
-	#[test]
-	fn read_words_4x5() {
-		read_words(4, 5)
-	}
+	#[test] fn read_words_vec_4x3() { read_words::<VecBuffer>(4, 3) }
+	#[test] fn read_words_vec_4x5() { read_words::<VecBuffer>(4, 5) }
+	#[test] fn read_words_mmap_4x3() { read_words::<MmapBuffer>(4, 3) }
+	#[test] fn read_words_mmap_4x5() { read_words::<MmapBuffer>(4, 5) }
 }
