@@ -1,6 +1,7 @@
 // https://github.com/rust-lang/rust/issues/54236
 use copy_in_place::*;
 
+/// `Vec`-backed buffer
 pub struct VecBuffer {
 	buf: Vec<u8>,
 	// where actual data resides within the `buf`

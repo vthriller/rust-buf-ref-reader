@@ -19,9 +19,15 @@ While being more performant, this approach also severely limits applicability of
 - returned references are immutable;
 - obviously, there's also nothing that can return `String`s or `&str`s for you.
 
-Additionaly, [slice-deque](https://github.com/gnzlbg/slice_deque) poses limitations of its own
-(platform support, min buffer size, memory allocator bypass,
-possible overhead due to how kernel handles address spaces with lots of maps).
+## Choice a of buffer
+
+Use [`MmapBuffer`](struct.MmapBuffer.html) unless:
+
+- [slice-deque](https://github.com/gnzlbg/slice_deque) is not available for your platform (e.g. no support for `mmap`),
+- you need very small buffers (smaller than 1 memory page),
+- you're about to create a lot of buffers in a short period of time ([`new()`](trait.Buffer.html#tymethod.new) is relatively expensive),
+- you're expecting buffer to grow a lot (consider, if possible, preallocating larger buffers through [`BufRefReaderBuilder.capacity`](struct.BufRefReaderBuilder.html#method.capacity)),
+- you have some very special concerns re: memory maps and malloc bypass (special allocators, possible kernel inefficiency due to large amount of mapped memory regions etc.).
 
 ## Examples
 

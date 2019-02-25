@@ -18,6 +18,7 @@ why report len() of X when you can only put X/2 elements inside?
 */
 use slice_deque::{Buffer, AllocError};
 
+/// Buffer that uses circular buffer implemented with mirrored memory maps
 pub struct MmapBuffer {
 	buf: Buffer<u8>,
 	/*
