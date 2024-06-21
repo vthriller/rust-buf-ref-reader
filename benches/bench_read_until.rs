@@ -1,4 +1,4 @@
-use bencher::{Bencher, benchmark_group, benchmark_main, black_box};
+use criterion::{black_box, criterion_group, criterion_main, Bencher, Criterion};
 
 use buf_ref_reader::*;
 use std::io::{Read, BufRead, BufReader, Result};
@@ -25,8 +25,8 @@ fn consume(data: &[u8]) {
 
 macro_rules! bufref {
 	($fname:ident, $buf:ident, $wrapped:expr, $cap:expr) => {
-		fn $fname(b: &mut Bencher) {
-			b.iter(|| {
+		fn $fname(c: &mut Criterion) {
+			c.bench_function(stringify!($fname), |b| b.iter(|| {
 				let mut r = BufRefReaderBuilder::new($wrapped)
 					.capacity($cap)
 					.build::<$buf>()
@@ -34,7 +34,7 @@ macro_rules! bufref {
 				while let Some(line) = r.read_until(b'\n').unwrap() {
 					consume(line);
 				}
-			})
+			}));
 		}
 	}
 }
@@ -51,15 +51,15 @@ bufref!(throttled_bufref_read_until_mmap_64, MmapBuffer, ThrottledReader(WORDS),
 
 macro_rules! std_read_until {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
-		fn $fname(b: &mut Bencher) {
-			b.iter(|| {
+		fn $fname(c: &mut Criterion) {
+			c.bench_function(stringify!($fname), |b| b.iter(|| {
 				let mut r = BufReader::with_capacity($cap, $wrapped);
 				let mut buf = vec![];
 				while r.read_until(b'\n', &mut buf).unwrap() != 0 {
 					consume(buf.as_slice());
 					buf.clear();
 				}
-			})
+			}));
 		}
 	}
 }
@@ -90,8 +90,8 @@ and all of borrowck complications that come from use of BufReader methods.
 */
 macro_rules! std_fillbuf {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
-		fn $fname(b: &mut Bencher) {
-			b.iter(|| {
+		fn $fname(c: &mut Criterion) {
+			c.bench_function(stringify!($fname), |b| b.iter(|| {
 				let mut r = BufReader::with_capacity($cap, $wrapped);
 
 				let mut head: Option<Vec<u8>> = None;
@@ -139,7 +139,7 @@ macro_rules! std_fillbuf {
 						},
 					}
 				}
-			})
+			}));
 		}
 	}
 }
@@ -154,8 +154,8 @@ std_fillbuf!(throttled_std_fillbuf_64, ThrottledReader(WORDS), 64*1024);
 
 macro_rules! bufref_read_until_long {
 	($fname:ident, $buf:ident, $wrapped:expr, $cap:expr) => {
-		fn $fname(b: &mut Bencher) {
-			b.iter(|| {
+		fn $fname(c: &mut Criterion) {
+			c.bench_function(stringify!($fname), |b| b.iter(|| {
 				let mut r = BufRefReaderBuilder::new($wrapped)
 					.capacity($cap)
 					.build::<$buf>()
@@ -163,7 +163,7 @@ macro_rules! bufref_read_until_long {
 				while let Some(x) = r.read_until(b'q').unwrap() {
 					consume(x);
 				}
-			})
+			}));
 		}
 	}
 }
@@ -180,15 +180,15 @@ bufref_read_until_long!(throttled_bufref_read_until_long_mmap_64, MmapBuffer, Th
 
 macro_rules! std_read_until_long {
 	($fname:ident, $wrapped:expr, $cap:expr) => {
-		fn $fname(b: &mut Bencher) {
-			b.iter(|| {
+		fn $fname(c: &mut Criterion) {
+			c.bench_function(stringify!($fname), |b| b.iter(|| {
 				let mut r = BufReader::with_capacity($cap, $wrapped);
 				let mut buf = vec![];
 				while r.read_until(b'q', &mut buf).unwrap() != 0 {
 					consume(buf.as_slice());
 					buf.clear();
 				}
-			})
+			}));
 		}
 	}
 }
@@ -199,7 +199,7 @@ std_read_until_long!(std_read_until_long_64, WORDS, 64*1024);
 std_read_until_long!(throttled_std_read_until_long_4, ThrottledReader(WORDS), 4096);
 std_read_until_long!(throttled_std_read_until_long_64, ThrottledReader(WORDS), 64*1024);
 
-benchmark_group!(benches,
+criterion_group!(benches,
 	bufref_read_until_vec_4,
 	bufref_read_until_vec_64,
 	bufref_read_until_mmap_4,
@@ -238,4 +238,4 @@ benchmark_group!(benches,
 	throttled_std_read_until_long_4,
 	throttled_std_read_until_long_64,
 );
-benchmark_main!(benches);
+criterion_main!(benches);

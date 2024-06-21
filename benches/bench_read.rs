@@ -1,4 +1,4 @@
-use bencher::{Bencher, benchmark_group, benchmark_main, black_box};
+use criterion::{black_box, criterion_group, criterion_main, Bencher, Criterion};
 
 use buf_ref_reader::*;
 use std::io::{Read, BufReader};
@@ -25,10 +25,10 @@ where
 		}
 	})
 }
-fn bufref_read_vec_4x4(b: &mut Bencher)   { bufref_read::<VecBuffer> (b, 4096, 4) }
-fn bufref_read_vec_64x4(b: &mut Bencher)  { bufref_read::<VecBuffer> (b, 64*1024, 4) }
-fn bufref_read_mmap_4x4(b: &mut Bencher)  { bufref_read::<MmapBuffer>(b, 4096, 4) }
-fn bufref_read_mmap_64x4(b: &mut Bencher) { bufref_read::<MmapBuffer>(b, 64*1024, 4) }
+fn bufref_read_vec_4x4(c: &mut Criterion)   { c.bench_function("bufref_read_vec_4x4",   |b| bufref_read::<VecBuffer> (b, 4096, 4)); }
+fn bufref_read_vec_64x4(c: &mut Criterion)  { c.bench_function("bufref_read_vec_64x4",  |b| bufref_read::<VecBuffer> (b, 64*1024, 4)); }
+fn bufref_read_mmap_4x4(c: &mut Criterion)  { c.bench_function("bufref_read_mmap_4x4",  |b| bufref_read::<MmapBuffer>(b, 4096, 4)); }
+fn bufref_read_mmap_64x4(c: &mut Criterion) { c.bench_function("bufref_read_mmap_64x4", |b| bufref_read::<MmapBuffer>(b, 64*1024, 4)); }
 
 fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 	b.iter(|| {
@@ -40,10 +40,10 @@ fn std_read(b: &mut Bencher, cap: usize, read: usize) {
 		}
 	})
 }
-fn std_read_4x4(b: &mut Bencher) { std_read(b, 4096, 4) }
-fn std_read_64x4(b: &mut Bencher) { std_read(b, 64*1024, 4) }
+fn std_read_4x4(c: &mut Criterion)  { c.bench_function("std_read_4x4",  |b| std_read(b, 4096, 4)); }
+fn std_read_64x4(c: &mut Criterion) { c.bench_function("std_read_64x4", |b| std_read(b, 64*1024, 4)); }
 
-benchmark_group!(benches,
+criterion_group!(benches,
 	bufref_read_vec_4x4,
 	bufref_read_vec_64x4,
 	bufref_read_mmap_4x4,
@@ -51,4 +51,4 @@ benchmark_group!(benches,
 	std_read_4x4,
 	std_read_64x4,
 );
-benchmark_main!(benches);
+criterion_main!(benches);

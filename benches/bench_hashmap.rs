@@ -1,4 +1,4 @@
-use bencher::{Bencher, benchmark_group, benchmark_main};
+use criterion::{black_box, criterion_group, criterion_main, Bencher, Criterion};
 
 use buf_ref_reader::*;
 use std::io::{BufRead, BufReader};
@@ -61,14 +61,14 @@ where
 		}
 	})
 }
-fn bufref_hashmap_vec_2(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 2, 750) }
-fn bufref_hashmap_vec_3(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 3, 6500) }
-fn bufref_hashmap_vec_4(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 4, 28000) }
-fn bufref_hashmap_vec_5(b: &mut Bencher)  { bufref_hashmap::<VecBuffer>(b, 5, 65000) }
-fn bufref_hashmap_mmap_2(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 2, 750) }
-fn bufref_hashmap_mmap_3(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 3, 6500) }
-fn bufref_hashmap_mmap_4(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 4, 28000) }
-fn bufref_hashmap_mmap_5(b: &mut Bencher) { bufref_hashmap::<MmapBuffer>(b, 5, 65000) }
+fn bufref_hashmap_vec_2(c: &mut Criterion)  { c.bench_function("bufref_hashmap_vec_2",  |b| bufref_hashmap::<VecBuffer>(b, 2, 750)); }
+fn bufref_hashmap_vec_3(c: &mut Criterion)  { c.bench_function("bufref_hashmap_vec_3",  |b| bufref_hashmap::<VecBuffer>(b, 3, 6500)); }
+fn bufref_hashmap_vec_4(c: &mut Criterion)  { c.bench_function("bufref_hashmap_vec_4",  |b| bufref_hashmap::<VecBuffer>(b, 4, 28000)); }
+fn bufref_hashmap_vec_5(c: &mut Criterion)  { c.bench_function("bufref_hashmap_vec_5",  |b| bufref_hashmap::<VecBuffer>(b, 5, 65000)); }
+fn bufref_hashmap_mmap_2(c: &mut Criterion) { c.bench_function("bufref_hashmap_mmap_2", |b| bufref_hashmap::<MmapBuffer>(b, 2, 750)); }
+fn bufref_hashmap_mmap_3(c: &mut Criterion) { c.bench_function("bufref_hashmap_mmap_3", |b| bufref_hashmap::<MmapBuffer>(b, 3, 6500)); }
+fn bufref_hashmap_mmap_4(c: &mut Criterion) { c.bench_function("bufref_hashmap_mmap_4", |b| bufref_hashmap::<MmapBuffer>(b, 4, 28000)); }
+fn bufref_hashmap_mmap_5(c: &mut Criterion) { c.bench_function("bufref_hashmap_mmap_5", |b| bufref_hashmap::<MmapBuffer>(b, 5, 65000)); }
 
 fn std_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 	b.iter(|| {
@@ -82,10 +82,10 @@ fn std_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-fn std_hashmap_2(b: &mut Bencher) { std_hashmap(b, 2, 750) }
-fn std_hashmap_3(b: &mut Bencher) { std_hashmap(b, 3, 6500) }
-fn std_hashmap_4(b: &mut Bencher) { std_hashmap(b, 4, 28000) }
-fn std_hashmap_5(b: &mut Bencher) { std_hashmap(b, 5, 65000) }
+fn std_hashmap_2(c: &mut Criterion) { c.bench_function("std_hashmap_2", |b| std_hashmap(b, 2, 750)); }
+fn std_hashmap_3(c: &mut Criterion) { c.bench_function("std_hashmap_3", |b| std_hashmap(b, 3, 6500)); }
+fn std_hashmap_4(c: &mut Criterion) { c.bench_function("std_hashmap_4", |b| std_hashmap(b, 4, 28000)); }
+fn std_hashmap_5(c: &mut Criterion) { c.bench_function("std_hashmap_5", |b| std_hashmap(b, 5, 65000)); }
 
 /*
 this benchmark is solely about measuring code
@@ -111,12 +111,12 @@ fn baseline_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 		}
 	})
 }
-fn baseline_hashmap_2(b: &mut Bencher) { baseline_hashmap(b, 2, 750) }
-fn baseline_hashmap_3(b: &mut Bencher) { baseline_hashmap(b, 3, 6500) }
-fn baseline_hashmap_4(b: &mut Bencher) { baseline_hashmap(b, 4, 28000) }
-fn baseline_hashmap_5(b: &mut Bencher) { baseline_hashmap(b, 5, 65000) }
+fn baseline_hashmap_2(c: &mut Criterion) { c.bench_function("baseline_hashmap_2", |b| baseline_hashmap(b, 2, 750)); }
+fn baseline_hashmap_3(c: &mut Criterion) { c.bench_function("baseline_hashmap_3", |b| baseline_hashmap(b, 3, 6500)); }
+fn baseline_hashmap_4(c: &mut Criterion) { c.bench_function("baseline_hashmap_4", |b| baseline_hashmap(b, 4, 28000)); }
+fn baseline_hashmap_5(c: &mut Criterion) { c.bench_function("baseline_hashmap_5", |b| baseline_hashmap(b, 5, 65000)); }
 
-benchmark_group!(benches,
+criterion_group!(benches,
 	bufref_hashmap_vec_2,
 	bufref_hashmap_vec_3,
 	bufref_hashmap_vec_4,
@@ -134,4 +134,4 @@ benchmark_group!(benches,
 	baseline_hashmap_4,
 	baseline_hashmap_5,
 );
-benchmark_main!(benches);
+criterion_main!(benches);

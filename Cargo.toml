@@ -17,7 +17,7 @@ quick-error = "1.2"
 
 [dev-dependencies]
 fnv = "1"
-bencher = "0.1"
+criterion = "0.5"
 
 # use libc's memchr to make comparison with BufReader fair
 # as of 1.32.0:
