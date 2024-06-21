@@ -1,4 +1,5 @@
 use std::slice::from_raw_parts_mut;
+use std::slice::SliceIndex;
 use vmap::os::{
 	map_ring,
 	unmap_ring,
@@ -26,9 +27,15 @@ impl<'a> Drop for Ring<'a> {
 		}
 	}
 }
-impl<'a> std::convert::AsRef<[u8]> for Ring<'a> {
-	fn as_ref(&self) -> &[u8] {
-		&self.buf
+impl<'a, I: SliceIndex<[u8]>> std::ops::Index<I> for Ring<'a> {
+	type Output = I::Output;
+	fn index(&self, index: I) -> &Self::Output {
+		&self.buf[index]
+	}
+}
+impl<'a, I: SliceIndex<[u8]>> std::ops::IndexMut<I> for Ring<'a> {
+	fn index_mut(&mut self, index: I) -> &mut I::Output {
+		&mut self.buf[index]
 	}
 }
 impl<'a> std::convert::AsMut<[u8]> for Ring<'a> {
@@ -55,7 +62,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 		})
 	}
 	fn filled(&self) -> &[u8] {
-		&self.buf.as_ref()[ self.start .. (self.start + self.len) ]
+		&self.buf[ self.start .. (self.start + self.len) ]
 	}
 	// make room for new data one way or the other
 	fn enlarge(&mut self) -> Result<(), Error> {
@@ -68,7 +75,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 			let newsize = bufsize * 2;
 			let mut new = Ring::new(newsize)?;
 			// move data at the start of new buffer
-			new.as_mut()[..bufsize].copy_from_slice(&self.buf.as_ref()[self.start..bufsize]);
+			new[..bufsize].copy_from_slice(&self.buf[self.start..bufsize]);
 			self.start = 0;
 			self.buf = new;
 		} else {
@@ -85,7 +92,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 	fn appendable(&mut self) -> &mut [u8] {
 		let end = self.start + self.len;
 		let remaining = self.buf.as_mut().len()/2 - self.len;
-		&mut self.buf.as_mut()[ end .. (end+remaining) ]
+		&mut self.buf[ end .. (end+remaining) ]
 	}
 	fn grow(&mut self, amount: usize) {
 		self.len += amount;
@@ -106,7 +113,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 			self.start -= self.buf.as_mut().len()/2;
 		}
 		self.len -= amount;
-		&self.buf.as_mut()[ start .. (start+amount) ]
+		&self.buf[ start .. (start+amount) ]
 	}
 	fn len(&self) -> usize {
 		self.len
