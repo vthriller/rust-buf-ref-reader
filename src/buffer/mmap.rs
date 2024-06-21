@@ -1,76 +1,50 @@
-/*
-SliceDeque is quite inconvenient, e.g.:
-- you still need to resort to `unsafe {}`
-  to append data through `&mut [u8]`
-  and advance tail position accordingly,
-- you still need to be careful with pointers to head/tail
-  and actively prevent underruns/overruns,
-- borrow checker still messes up reader methods
-  (e.g. `buf.move_head()` after `buf.as_slice()`).
-Hence we drop to a lower level thing.
-
-But even this lower level buffer is not without its own warts:
-it operates with an overall size of a mirrored buffer, not one of its halves,
-which results in a lot of unnecessary `* 2` on the user's side
-and lots of `/ 2`, `% 2`, and `assert!`s in the crate that implements it.
-And, yes, this is just utterly confusing:
-why report len() of X when you can only put X/2 elements inside?
-*/
-use slice_deque::{Buffer, AllocError};
+use std::slice::from_raw_parts_mut;
+use vmap::os::{
+	map_ring,
+	unmap_ring,
+};
+use vmap::{
+	Error,
+	allocation_size,
+};
 
 /// Buffer that uses circular buffer implemented with mirrored memory maps
-pub struct MmapBuffer {
-	buf: Buffer<u8>,
-	/*
-	We keep size of a `buf`'s size on our own because `buf.len()`:
-	- returns twice the amount of data buffer can actually handle
-	  (i.e. size of mmaped region with two mirrors),
-	  which makes it confusing, and it's also an error waiting to happen,
-	- it also causes an immutable borrowing of `buf`,
-	  thus making most of manipulations with `buf`'s content inconvenient.
-	*/
-	bufsize: usize,
+pub struct MmapBuffer<'a> {
+	buf: &'a mut [u8],
 	// position of data within the `buf`
 	start: usize,
 	len: usize,
 }
-impl super::Buffer for MmapBuffer {
-	type Error = AllocError;
-	fn new(size: usize) -> Result<Self, AllocError> {
-		let buf = Buffer::uninitialized(size * 2)?;
-		// slice-deque will round bufsize to the nearest page size or something,
-		// so we query it back here
-		let bufsize = buf.len() / 2;
+impl<'a> super::Buffer for MmapBuffer<'a> {
+	type Error = Error;
+	fn new(size: usize) -> Result<Self, Error> {
+		let size = size.next_multiple_of(allocation_size());
+		let buf = map_ring(size)?;
+		let buf = unsafe { from_raw_parts_mut(buf, size*2) };
 		Ok(MmapBuffer {
-			buf, bufsize,
+			buf,
 			start: 0, len: 0,
 		})
 	}
 	fn filled(&self) -> &[u8] {
-		&(unsafe {
-			self.buf.as_slice()
-		})[ self.start .. (self.start + self.len) ]
+		&self.buf[ self.start .. (self.start + self.len) ]
 	}
 	// make room for new data one way or the other
-	fn enlarge(&mut self) -> Result<(), AllocError> {
-		if self.start == 0 && self.len == self.bufsize {
+	fn enlarge(&mut self) -> Result<(), Error> {
+		let bufsize = self.buf.len()/2;
+		if self.start == 0 && self.len == bufsize {
 			/*
 			we used to have configurable increments for the bufsize
 			now though we double buffer size, just like rust's vec/raw_vec do
 			*/
-			self.bufsize *= 2;
-			let mut new = Buffer::uninitialized(self.bufsize * 2)?;
-			// see .new() for th reasons why we read bufsize back
-			self.bufsize = new.len() / 2;
+			let newsize = bufsize * 2;
+			let new = map_ring(newsize)?;
+			let new = unsafe { from_raw_parts_mut(new, newsize*2) };
 			// move data at the start of new buffer
-			unsafe {
-				core::ptr::copy(
-					self.buf.as_mut_slice()[self.start..].as_mut_ptr(),
-					new.as_mut_slice().as_mut_ptr(),
-					self.len,
-				);
-			}
+			new[..bufsize].copy_from_slice(&self.buf[self.start..bufsize]);
 			self.start = 0;
+
+			unsafe { unmap_ring(self.buf.as_mut_ptr(), bufsize/2)?; }
 			self.buf = new;
 		} else {
 			// there's plenty of room in the buffer,
@@ -85,10 +59,8 @@ impl super::Buffer for MmapBuffer {
 	*/
 	fn appendable(&mut self) -> &mut [u8] {
 		let end = self.start + self.len;
-		let remaining = self.bufsize - self.len;
-		&mut (unsafe {
-			self.buf.as_mut_slice()
-		})[ end .. (end+remaining) ]
+		let remaining = self.buf.len()/2 - self.len;
+		&mut self.buf[ end .. (end+remaining) ]
 	}
 	fn grow(&mut self, amount: usize) {
 		self.len += amount;
@@ -104,16 +76,22 @@ impl super::Buffer for MmapBuffer {
 		let amount = std::cmp::min(amount, self.len());
 
 		self.start += amount;
-		if self.start >= self.bufsize {
+		if self.start >= self.buf.len()/2 {
 			// keep self.start within bufsize
-			self.start -= self.bufsize;
+			self.start -= self.buf.len()/2;
 		}
 		self.len -= amount;
-		&(unsafe {
-			self.buf.as_mut_slice()
-		})[ start .. (start+amount) ]
+		&self.buf[ start .. (start+amount) ]
 	}
 	fn len(&self) -> usize {
 		self.len
+	}
+}
+impl<'a> Drop for MmapBuffer<'a> {
+	fn drop(&mut self) {
+		unsafe {
+			// FIXME ignored Result: might leak
+			let _ = unmap_ring(self.buf.as_mut_ptr(), self.buf.len()/2);
+		}
 	}
 }

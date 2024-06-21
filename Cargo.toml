@@ -12,7 +12,7 @@ edition = "2018"
 memchr = "2"
 # https://github.com/rust-lang/rust/issues/54236
 copy_in_place = "0.2"
-slice-deque = "0.1"
+vmap = "0.6.3"
 quick-error = "1.2"
 
 [dev-dependencies]

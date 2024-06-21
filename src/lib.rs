@@ -79,7 +79,6 @@ pub use buffer::{
 	VecBuffer,
 	MmapBuffer,
 };
-use slice_deque::AllocError;
 
 use std::convert::From;
 
@@ -133,7 +132,7 @@ quick_error! {
 		/// Error reading from actual reader
 		IO(err: io::Error) { from() }
 		/// Indicates failure to create/grow buffer
-		Buf(err: AllocError) { from() }
+		Buf(err: vmap::Error) { from() }
 	}
 }
 impl From<()> for Error {
