@@ -18,12 +18,16 @@ impl<'a> Ring<'a> {
 		let buf = unsafe { from_raw_parts_mut(buf, size*2) };
 		Ok(Ring { buf })
 	}
+	fn capacity(&self) -> usize {
+		// underlying slice is twice as long
+		self.buf.len()/2
+	}
 }
 impl<'a> Drop for Ring<'a> {
 	fn drop(&mut self) {
 		unsafe {
 			// FIXME ignored Result: might leak
-			let _ = unmap_ring(self.buf.as_mut_ptr(), self.buf.len()/2);
+			let _ = unmap_ring(self.buf.as_mut_ptr(), self.capacity());
 		}
 	}
 }
@@ -36,11 +40,6 @@ impl<'a, I: SliceIndex<[u8]>> std::ops::Index<I> for Ring<'a> {
 impl<'a, I: SliceIndex<[u8]>> std::ops::IndexMut<I> for Ring<'a> {
 	fn index_mut(&mut self, index: I) -> &mut I::Output {
 		&mut self.buf[index]
-	}
-}
-impl<'a> std::convert::AsMut<[u8]> for Ring<'a> {
-	fn as_mut(&mut self) -> &mut [u8] {
-		&mut self.buf
 	}
 }
 
@@ -66,7 +65,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 	}
 	// make room for new data one way or the other
 	fn enlarge(&mut self) -> Result<(), Error> {
-		let bufsize = self.buf.as_mut().len()/2;
+		let bufsize = self.buf.capacity();
 		if self.start == 0 && self.len == bufsize {
 			/*
 			we used to have configurable increments for the bufsize
@@ -91,7 +90,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 	*/
 	fn appendable(&mut self) -> &mut [u8] {
 		let end = self.start + self.len;
-		let remaining = self.buf.as_mut().len()/2 - self.len;
+		let remaining = self.buf.capacity() - self.len;
 		&mut self.buf[ end .. (end+remaining) ]
 	}
 	fn grow(&mut self, amount: usize) {
@@ -108,9 +107,9 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 		let amount = std::cmp::min(amount, self.len());
 
 		self.start += amount;
-		if self.start >= self.buf.as_mut().len()/2 {
+		if self.start >= self.buf.capacity() {
 			// keep self.start within bufsize
-			self.start -= self.buf.as_mut().len()/2;
+			self.start -= self.buf.capacity();
 		}
 		self.len -= amount;
 		&self.buf[ start .. (start+amount) ]
