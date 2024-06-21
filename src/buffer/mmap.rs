@@ -8,9 +8,38 @@ use vmap::{
 	allocation_size,
 };
 
+struct Ring<'a> {
+	buf: &'a mut [u8],
+}
+impl<'a> Ring<'a> {
+	fn new(size: usize) -> Result<Self, Error> {
+		let buf = map_ring(size)?;
+		let buf = unsafe { from_raw_parts_mut(buf, size*2) };
+		Ok(Ring { buf })
+	}
+}
+impl<'a> Drop for Ring<'a> {
+	fn drop(&mut self) {
+		unsafe {
+			// FIXME ignored Result: might leak
+			let _ = unmap_ring(self.buf.as_mut_ptr(), self.buf.len()/2);
+		}
+	}
+}
+impl<'a> std::convert::AsRef<[u8]> for Ring<'a> {
+	fn as_ref(&self) -> &[u8] {
+		&self.buf
+	}
+}
+impl<'a> std::convert::AsMut<[u8]> for Ring<'a> {
+	fn as_mut(&mut self) -> &mut [u8] {
+		&mut self.buf
+	}
+}
+
 /// Buffer that uses circular buffer implemented with mirrored memory maps
 pub struct MmapBuffer<'a> {
-	buf: &'a mut [u8],
+	buf: Ring<'a>,
 	// position of data within the `buf`
 	start: usize,
 	len: usize,
@@ -19,32 +48,28 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 	type Error = Error;
 	fn new(size: usize) -> Result<Self, Error> {
 		let size = size.next_multiple_of(allocation_size());
-		let buf = map_ring(size)?;
-		let buf = unsafe { from_raw_parts_mut(buf, size*2) };
+		let buf = Ring::new(size)?;
 		Ok(MmapBuffer {
 			buf,
 			start: 0, len: 0,
 		})
 	}
 	fn filled(&self) -> &[u8] {
-		&self.buf[ self.start .. (self.start + self.len) ]
+		&self.buf.as_ref()[ self.start .. (self.start + self.len) ]
 	}
 	// make room for new data one way or the other
 	fn enlarge(&mut self) -> Result<(), Error> {
-		let bufsize = self.buf.len()/2;
+		let bufsize = self.buf.as_mut().len()/2;
 		if self.start == 0 && self.len == bufsize {
 			/*
 			we used to have configurable increments for the bufsize
 			now though we double buffer size, just like rust's vec/raw_vec do
 			*/
 			let newsize = bufsize * 2;
-			let new = map_ring(newsize)?;
-			let new = unsafe { from_raw_parts_mut(new, newsize*2) };
+			let mut new = Ring::new(newsize)?;
 			// move data at the start of new buffer
-			new[..bufsize].copy_from_slice(&self.buf[self.start..bufsize]);
+			new.as_mut()[..bufsize].copy_from_slice(&self.buf.as_ref()[self.start..bufsize]);
 			self.start = 0;
-
-			unsafe { unmap_ring(self.buf.as_mut_ptr(), bufsize/2)?; }
 			self.buf = new;
 		} else {
 			// there's plenty of room in the buffer,
@@ -59,8 +84,8 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 	*/
 	fn appendable(&mut self) -> &mut [u8] {
 		let end = self.start + self.len;
-		let remaining = self.buf.len()/2 - self.len;
-		&mut self.buf[ end .. (end+remaining) ]
+		let remaining = self.buf.as_mut().len()/2 - self.len;
+		&mut self.buf.as_mut()[ end .. (end+remaining) ]
 	}
 	fn grow(&mut self, amount: usize) {
 		self.len += amount;
@@ -76,22 +101,14 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 		let amount = std::cmp::min(amount, self.len());
 
 		self.start += amount;
-		if self.start >= self.buf.len()/2 {
+		if self.start >= self.buf.as_mut().len()/2 {
 			// keep self.start within bufsize
-			self.start -= self.buf.len()/2;
+			self.start -= self.buf.as_mut().len()/2;
 		}
 		self.len -= amount;
-		&self.buf[ start .. (start+amount) ]
+		&self.buf.as_mut()[ start .. (start+amount) ]
 	}
 	fn len(&self) -> usize {
 		self.len
-	}
-}
-impl<'a> Drop for MmapBuffer<'a> {
-	fn drop(&mut self) {
-		unsafe {
-			// FIXME ignored Result: might leak
-			let _ = unmap_ring(self.buf.as_mut_ptr(), self.buf.len()/2);
-		}
 	}
 }
