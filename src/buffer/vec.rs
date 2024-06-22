@@ -41,7 +41,7 @@ impl super::Buffer for VecBuffer {
 	fn appendable(&mut self) -> &mut [u8] {
 		&mut self.buf[ self.end .. ]
 	}
-	fn grow(&mut self, amount: usize) {
+	fn mark_appended(&mut self, amount: usize) {
 		self.end += amount;
 	}
 	/*

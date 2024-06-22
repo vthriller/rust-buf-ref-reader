@@ -15,7 +15,7 @@ let mut buf = SomeBuffer::new(128)?;
 // write data into free part of the buffer
 let read = input.read(buf.appendable()).unwrap();
 // append actually written bytes
-buf.grow(read);
+buf.mark_appended(read);
 
 // read part of written data back
 // this slice is only valid until another call to one of `buf`'s methods
@@ -31,7 +31,7 @@ if buf.appendable().len() == 0 {
 	buf.enlarge()?;
 }
 let read = input.read(buf.appendable()).unwrap();
-buf.grow(read);
+buf.mark_appended(read);
 
 // borrow checker will prevent `chunk` from being used at this point,
 // and that makes sense as data might've been reallocated or destroyed
@@ -52,12 +52,12 @@ where Self: std::marker::Sized
 	/**
 	Part of the buffer next to the [`filled()`](#tymethod.filled) that can be used to append data.
 
-	Use [`grow()`](#tymethod.grow) to actually append data written to this slice.
+	Use [`mark_appended()`](#tymethod.mark_appended) to actually append data written to this slice.
 	*/
 	fn appendable(&mut self) -> &mut [u8];
 	/// Attaches `amount` bytes of [`appendable()`](#tymethod.appendable)
 	/// to [`filled()`](#tymethod.filled) part of the buffer
-	fn grow(&mut self, amount: usize);
+	fn mark_appended(&mut self, amount: usize);
 	/**
 	Split [`filled()`](#tymethod.filled) part of the buffer,
 	returning up to `amount` bytes from the beginning while also marking them as discarded

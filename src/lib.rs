@@ -162,7 +162,7 @@ where Error: From<B::Error>
 		match self.src.read(self.buf.appendable())? {
 			0 => Ok(None), // EOF
 			n => {
-				self.buf.grow(n);
+				self.buf.mark_appended(n);
 				Ok(Some(old_len))
 			}
 		}

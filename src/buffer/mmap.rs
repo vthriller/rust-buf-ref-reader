@@ -93,7 +93,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 		let remaining = self.buf.capacity() - self.len;
 		&mut self.buf[ end .. (end+remaining) ]
 	}
-	fn grow(&mut self, amount: usize) {
+	fn mark_appended(&mut self, amount: usize) {
 		self.len += amount;
 	}
 	/*
