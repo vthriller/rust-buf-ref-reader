@@ -59,6 +59,7 @@ where
 			let p = prefix(&line, n);
 			insert(&mut map, p);
 		}
+		black_box(map);
 	})
 }
 fn bufref_hashmap_vec_2(c: &mut Criterion)  { c.bench_function("bufref_hashmap_vec_2",  |b| bufref_hashmap::<VecBuffer>(b, 2, 750)); }
@@ -80,6 +81,7 @@ fn std_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 			insert(&mut map, p);
 			buf.clear();
 		}
+		black_box(map);
 	})
 }
 fn std_hashmap_2(c: &mut Criterion) { c.bench_function("std_hashmap_2", |b| std_hashmap(b, 2, 750)); }
@@ -109,6 +111,7 @@ fn baseline_hashmap(b: &mut Bencher, n: usize, cap: usize) {
 			let p = prefix(&line, n);
 			insert(&mut map, p);
 		}
+		black_box(map);
 	})
 }
 fn baseline_hashmap_2(c: &mut Criterion) { c.bench_function("baseline_hashmap_2", |b| baseline_hashmap(b, 2, 750)); }
