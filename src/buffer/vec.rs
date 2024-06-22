@@ -22,13 +22,15 @@ impl super::Buffer for VecBuffer {
 			// this buffer is already full, double its size
 			self.buf.reserve(self.buf.len());
 			unsafe { self.buf.set_len(self.buf.len() * 2) };
-		} else {
+		} else if self.end == self.buf.len() {
 			// reallocate and fill existing buffer
 			if self.end - self.start != 0 {
 				self.buf.copy_within(self.start..self.end, 0)
 			}
 			self.end -= self.start;
 			self.start = 0;
+		} else {
+			// there's still some room in `appendable()`, nothing to do
 		}
 		Ok(())
 	}
