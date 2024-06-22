@@ -1,6 +1,3 @@
-// https://github.com/rust-lang/rust/issues/54236
-use copy_in_place::*;
-
 /// `Vec`-backed buffer
 pub struct VecBuffer {
 	buf: Vec<u8>,
@@ -28,8 +25,7 @@ impl super::Buffer for VecBuffer {
 		} else {
 			// reallocate and fill existing buffer
 			if self.end - self.start != 0 {
-				//self.buf.copy_within(self.start..self.end, 0)
-				copy_in_place(&mut self.buf, self.start..self.end, 0);
+				self.buf.copy_within(self.start..self.end, 0)
 			}
 			self.end -= self.start;
 			self.start = 0;
