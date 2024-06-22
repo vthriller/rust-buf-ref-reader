@@ -23,7 +23,7 @@ While being more performant, this approach also severely limits applicability of
 
 Use [`MmapBuffer`](struct.MmapBuffer.html) unless:
 
-- [slice-deque](https://github.com/gnzlbg/slice_deque) is not available for your platform (e.g. no support for `mmap`),
+- [vmap](https://github.com/kalamay/vmap-rs) is not available for your platform (e.g. no support for `mmap`),
 - you need very small buffers (smaller than 1 memory page),
 - you're about to create a lot of buffers in a short period of time ([`new()`](trait.Buffer.html#tymethod.new) is relatively expensive),
 - you're expecting buffer to grow a lot (consider, if possible, preallocating larger buffers through [`BufRefReaderBuilder.capacity`](struct.BufRefReaderBuilder.html#method.capacity)),
