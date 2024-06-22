@@ -283,10 +283,10 @@ mod tests {
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'\n');
 		while let Ok(Some(slice_buf)) = r.read_until(b'\n') {
-			let mut slice_words = words.next().unwrap()
+			let mut ref_word = words.next().unwrap()
 				.to_vec();
-			slice_words.push(b'\n');
-			assert_eq!(slice_buf, &slice_words[..]);
+			ref_word.push(b'\n');
+			assert_eq!(slice_buf, &ref_word[..]);
 		}
 
 		// reader: returned immediately after hitting EOF past last b'\n'
@@ -312,12 +312,12 @@ mod tests {
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
 		while let Ok(Some(slice_buf)) = r.read_until(b'Q') {
-			let mut slice_words = words.next().unwrap()
+			let mut ref_word = words.next().unwrap()
 				.to_vec();
 			if words.peek() != None {
-				slice_words.push(b'Q');
+				ref_word.push(b'Q');
 			}
-			assert_eq!(slice_buf, &slice_words[..]);
+			assert_eq!(slice_buf, &ref_word[..]);
 		}
 
 		assert_eq!(words.next(), None);
@@ -355,8 +355,8 @@ mod tests {
 			.unwrap();
 		let mut words = WORDS.chunks(read);
 		while let Ok(Some(slice_buf)) = r.read(read) {
-			let slice_words = words.next().unwrap();
-			assert_eq!(slice_buf, slice_words);
+			let ref_word = words.next().unwrap();
+			assert_eq!(slice_buf, ref_word);
 		}
 		assert_eq!(words.next(), None);
 	}
