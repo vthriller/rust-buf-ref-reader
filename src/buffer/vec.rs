@@ -46,15 +46,15 @@ impl super::Buffer for VecBuffer {
 	}
 	/*
 	before:
-	|  xxxyyy |
-	   |    |end
+	[  xxxxyyyy ]
+	   |      |end
 	   |start
 
 	after:
-	|  xxxyyy |
-	   | || |end
-	   | ||start
-	   |-|return value
+	[  xxxxyyyy ]
+	   |  ||  |end
+	   |  ||start
+	   |--|return value
 	*/
 	fn consume(&mut self, amount: usize) -> &[u8] {
 		let amount = std::cmp::min(amount, self.len());
