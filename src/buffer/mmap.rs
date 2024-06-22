@@ -66,7 +66,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 	// make room for new data one way or the other
 	fn enlarge(&mut self) -> Result<(), Error> {
 		let bufsize = self.buf.capacity();
-		if self.start == 0 && self.len == bufsize {
+		if self.len == bufsize {
 			/*
 			we used to have configurable increments for the bufsize
 			now though we double buffer size, just like rust's vec/raw_vec do
@@ -74,7 +74,7 @@ impl<'a> super::Buffer for MmapBuffer<'a> {
 			let newsize = bufsize * 2;
 			let mut new = Ring::new(newsize)?;
 			// move data at the start of new buffer
-			new[..bufsize].copy_from_slice(&self.buf[self.start..bufsize]);
+			new[..bufsize].copy_from_slice(&self.buf[self.start..(self.start+self.len)]);
 			self.start = 0;
 			self.buf = new;
 		} else {
@@ -142,6 +142,7 @@ mod tests {
 		assert_eq!(buf.appendable().len(), 0);
 
 		// free some space at the beginning
+		// this will also make sure we're testing reallocation of data that doesn't align with a ringbuf mmap
 		buf.consume(1024);
 		// it should be available immediately
 		assert_eq!(buf.appendable().len(), 1024);
