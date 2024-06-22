@@ -12,37 +12,37 @@ the contents of which rarely need to outlive a single loop cycle.
 Reading lines from `&[u8] as Read` through 64k-sized buffer into the void:
 
 ```
-test throttled_bufref_read_until_mmap_64      ... bench:   9,013,420 ns/iter (+/- 1,165,996)
-test throttled_bufref_read_until_vec_64       ... bench:   8,769,302 ns/iter (+/- 772,987)
-test throttled_std_read_until_64              ... bench:  12,244,424 ns/iter (+/- 841,098)
+throttled_bufref_read_until_mmap_64  time:   [3.9114 ms 3.9204 ms 3.9302 ms] outliers: 8.00% high mild 1.00% high severe
+throttled_bufref_read_until_vec_64   time:   [4.1633 ms 4.1744 ms 4.1861 ms] outliers: 2.00% high mild
+throttled_std_read_until_64          time:   [7.1823 ms 7.1883 ms 7.1944 ms]
 ```
 
 Populating `HashMap` with up to 2-, 3-, 4-, 5-byte prefixes of entries from `/usr/share/dict/words`,
 while only allocating memory for new map entries:
 
 ```
-test baseline_hashmap_2    ... bench:   8,228,848 ns/iter (+/- 81,987)
-test bufref_hashmap_mmap_2 ... bench:  11,042,118 ns/iter (+/- 62,980)
-test bufref_hashmap_vec_2  ... bench:  10,613,380 ns/iter (+/- 45,901)
-test std_hashmap_2         ... bench:  17,010,897 ns/iter (+/- 93,379)
+baseline_hashmap_2      time:   [2.9565 ms 2.9746 ms 2.9957 ms] outliers:                 8.00% high mild 7.00% high severe
+bufref_hashmap_mmap_2   time:   [5.0644 ms 5.0719 ms 5.0795 ms] outliers:                 1.00% high mild
+bufref_hashmap_vec_2    time:   [4.8683 ms 4.8726 ms 4.8771 ms] outliers:                 4.00% high mild
+std_hashmap_2           time:   [7.0047 ms 7.0172 ms 7.0315 ms] outliers:                                 1.00% high severe
 ```
 ```
-test baseline_hashmap_3    ... bench:  10,426,822 ns/iter (+/- 119,331)
-test bufref_hashmap_mmap_3 ... bench:  13,180,343 ns/iter (+/- 118,483)
-test bufref_hashmap_vec_3  ... bench:  12,733,866 ns/iter (+/- 244,389)
-test std_hashmap_3         ... bench:  19,470,906 ns/iter (+/- 106,113)
+baseline_hashmap_3      time:   [3.2282 ms 3.2337 ms 3.2397 ms] outliers:                 1.00% high mild 1.00% high severe
+bufref_hashmap_mmap_3   time:   [5.0596 ms 5.0659 ms 5.0729 ms] outliers:                 4.00% high mild 2.00% high severe
+bufref_hashmap_vec_3    time:   [5.1929 ms 5.2030 ms 5.2138 ms] outliers:                                 1.00% high severe
+std_hashmap_3           time:   [7.0410 ms 7.0506 ms 7.0597 ms] outliers: 6.00% low mild
 ```
 ```
-test baseline_hashmap_4    ... bench:  16,135,731 ns/iter (+/- 296,142)
-test bufref_hashmap_mmap_4 ... bench:  18,887,024 ns/iter (+/- 267,410)
-test bufref_hashmap_vec_4  ... bench:  18,375,449 ns/iter (+/- 292,666)
-test std_hashmap_4         ... bench:  25,889,158 ns/iter (+/- 334,521)
+baseline_hashmap_4      time:   [5.3731 ms 5.3811 ms 5.3892 ms] outliers:                1.00% high mild
+bufref_hashmap_mmap_4   time:   [7.5447 ms 7.5671 ms 7.5901 ms] outliers: 3.00% low mild                 1.00% high severe
+bufref_hashmap_vec_4    time:   [7.3310 ms 7.3484 ms 7.3662 ms] outliers:                1.00% high mild
+std_hashmap_4           time:   [9.2472 ms 9.2716 ms 9.2987 ms] outliers: 1.00% low mild 2.00% high mild 1.00% high severe
 ```
 ```
-test baseline_hashmap_5    ... bench:  26,379,467 ns/iter (+/- 806,691)
-test bufref_hashmap_mmap_5 ... bench:  28,282,336 ns/iter (+/- 1,035,900)
-test bufref_hashmap_vec_5  ... bench:  27,588,498 ns/iter (+/- 1,081,542)
-test std_hashmap_5         ... bench:  35,321,514 ns/iter (+/- 1,114,093)
+baseline_hashmap_5      time:   [12.026 ms 12.057 ms 12.088 ms] outliers:                1.00% high mild
+bufref_hashmap_mmap_5   time:   [13.510 ms 13.540 ms 13.570 ms] outliers:                2.00% high mild
+bufref_hashmap_vec_5    time:   [14.010 ms 14.049 ms 14.090 ms] outliers:                1.00% high mild
+std_hashmap_5           time:   [15.079 ms 15.108 ms 15.137 ms]
 ```
 
 (`baseline` here shows the amount of time needed to populate map without any readers.
@@ -50,12 +50,10 @@ It's here to show overhead for each reader.)
 
 | Prefix length | How many entries caused allocation | Overhead (`BufReader`) | Overhead (`BufRefReader` `<MmapBuffer>`) | Wall clock time difference | Overead (`BufRefReader` `<VecBuffer>`) | Wall clock time difference
 |--|--|--|--|--|--|--|
-| 2 |  0.3% | 106.7% | 34.2% | -35.1% | 29.0% | -37.6%
-| 3 |  2.7% |  86.7% | 26.4% | -32.3% | 22.1% | -34.6%
-| 4 | 11.8% |  60.4% | 17.1% | -27.0% | 13.9% | -29.0%
-| 5 | 27.4% |  33.9% |  7.2% | -19.9% | 4.6%  | -21.9%
-
-(N.B. `MmapBuffer` should generally be faster. It is not clear yet why it's not the case with its Rust implementation.)
+| 2 |  0.3% | 135.9% | 70.5% | -27.7% | 63.8% | -30.6%
+| 3 |  2.7% | 118.0% | 56.7% | -28.1% | 60.9% | -26.2%
+| 4 | 11.8% |  72.3% | 40.6% | -18.4% | 36.6% | -20.7%
+| 5 | 27.4% |  25.3% | 12.3% | -10.4% | 16.5% |  -7.0%
 
 ## Acknowledgement
 
