@@ -12,37 +12,37 @@ the contents of which rarely need to outlive a single loop cycle.
 Reading lines from `&[u8] as Read` through 64k-sized buffer into the void:
 
 ```
-throttled_bufref_read_until_mmap_64  time:   [3.9114 ms 3.9204 ms 3.9302 ms] outliers: 8.00% high mild 1.00% high severe
-throttled_bufref_read_until_vec_64   time:   [4.1633 ms 4.1744 ms 4.1861 ms] outliers: 2.00% high mild
-throttled_std_read_until_64          time:   [7.1823 ms 7.1883 ms 7.1944 ms]
+throttled_bufref_read_until_mmap_64  time:   [3.8888 ms 3.8934 ms 3.8983 ms] outliers: 3% high mild
+throttled_bufref_read_until_vec_64   time:   [3.7754 ms 3.7798 ms 3.7847 ms] outliers: 3% high mild 1% high severe
+throttled_std_read_until_64          time:   [7.0686 ms 7.0734 ms 7.0783 ms] outliers: 2% high mild
 ```
 
 Populating `HashMap` with up to 2-, 3-, 4-, 5-byte prefixes of entries from `/usr/share/dict/words`,
 while only allocating memory for new map entries:
 
 ```
-baseline_hashmap_2      time:   [2.9565 ms 2.9746 ms 2.9957 ms] outliers:                 8.00% high mild 7.00% high severe
-bufref_hashmap_mmap_2   time:   [5.0644 ms 5.0719 ms 5.0795 ms] outliers:                 1.00% high mild
-bufref_hashmap_vec_2    time:   [4.8683 ms 4.8726 ms 4.8771 ms] outliers:                 4.00% high mild
-std_hashmap_2           time:   [7.0047 ms 7.0172 ms 7.0315 ms] outliers:                                 1.00% high severe
+baseline_hashmap_2      time:   [2.8716 ms 2.8724 ms 2.8733 ms] outliers: 4% low mild  4% high mild  1% high severe
+bufref_hashmap_mmap_2   time:   [4.9186 ms 4.9242 ms 4.9309 ms] outliers:              3% high mild  4% high severe
+bufref_hashmap_vec_2    time:   [4.6957 ms 4.6977 ms 4.6998 ms] outliers:              3% high mild  2% high severe
+std_hashmap_2           time:   [6.6979 ms 6.7016 ms 6.7056 ms] outliers:              1% high mild  1% high severe
 ```
 ```
-baseline_hashmap_3      time:   [3.2282 ms 3.2337 ms 3.2397 ms] outliers:                 1.00% high mild 1.00% high severe
-bufref_hashmap_mmap_3   time:   [5.0596 ms 5.0659 ms 5.0729 ms] outliers:                 4.00% high mild 2.00% high severe
-bufref_hashmap_vec_3    time:   [5.1929 ms 5.2030 ms 5.2138 ms] outliers:                                 1.00% high severe
-std_hashmap_3           time:   [7.0410 ms 7.0506 ms 7.0597 ms] outliers: 6.00% low mild
+baseline_hashmap_3      time:   [3.1622 ms 3.1636 ms 3.1653 ms] outliers: 1% low mild  3% high mild  3% high severe
+bufref_hashmap_mmap_3   time:   [5.1284 ms 5.1363 ms 5.1445 ms] outliers:              2% high mild
+bufref_hashmap_vec_3    time:   [4.9562 ms 4.9613 ms 4.9674 ms] outliers:              3% high mild  2% high severe
+std_hashmap_3           time:   [6.7757 ms 6.7793 ms 6.7832 ms] outliers:              4% high mild  5% high severe
 ```
 ```
-baseline_hashmap_4      time:   [5.3731 ms 5.3811 ms 5.3892 ms] outliers:                1.00% high mild
-bufref_hashmap_mmap_4   time:   [7.5447 ms 7.5671 ms 7.5901 ms] outliers: 3.00% low mild                 1.00% high severe
-bufref_hashmap_vec_4    time:   [7.3310 ms 7.3484 ms 7.3662 ms] outliers:                1.00% high mild
-std_hashmap_4           time:   [9.2472 ms 9.2716 ms 9.2987 ms] outliers: 1.00% low mild 2.00% high mild 1.00% high severe
+baseline_hashmap_4      time:   [5.3055 ms 5.3112 ms 5.3175 ms] outliers: 3% high mild  2% high severe
+bufref_hashmap_mmap_4   time:   [7.0919 ms 7.1002 ms 7.1096 ms] outliers: 5% high mild  1% high severe
+bufref_hashmap_vec_4    time:   [6.8833 ms 6.8910 ms 6.8992 ms] outliers: 3% high mild  1% high severe
+std_hashmap_4           time:   [8.9081 ms 8.9179 ms 8.9287 ms] outliers: 4% high mild  3% high severe
 ```
 ```
-baseline_hashmap_5      time:   [12.026 ms 12.057 ms 12.088 ms] outliers:                1.00% high mild
-bufref_hashmap_mmap_5   time:   [13.510 ms 13.540 ms 13.570 ms] outliers:                2.00% high mild
-bufref_hashmap_vec_5    time:   [14.010 ms 14.049 ms 14.090 ms] outliers:                1.00% high mild
-std_hashmap_5           time:   [15.079 ms 15.108 ms 15.137 ms]
+baseline_hashmap_5      time:   [11.947 ms 11.969 ms 11.993 ms] outliers: 4% high mild  6% high severe
+bufref_hashmap_mmap_5   time:   [13.484 ms 13.504 ms 13.526 ms] outliers: 4% high mild  1% high severe
+bufref_hashmap_vec_5    time:   [13.259 ms 13.289 ms 13.320 ms]
+std_hashmap_5           time:   [14.757 ms 14.775 ms 14.794 ms] outliers: 7% high mild  1% high severe
 ```
 
 (`baseline` here shows the amount of time needed to populate map without any readers.
@@ -50,10 +50,10 @@ It's here to show overhead for each reader.)
 
 | Prefix length | How many entries caused allocation | Overhead (`BufReader`) | Overhead (`BufRefReader` `<MmapBuffer>`) | Wall clock time difference | Overead (`BufRefReader` `<VecBuffer>`) | Wall clock time difference
 |--|--|--|--|--|--|--|
-| 2 |  0.3% | 135.9% | 70.5% | -27.7% | 63.8% | -30.6%
-| 3 |  2.7% | 118.0% | 56.7% | -28.1% | 60.9% | -26.2%
-| 4 | 11.8% |  72.3% | 40.6% | -18.4% | 36.6% | -20.7%
-| 5 | 27.4% |  25.3% | 12.3% | -10.4% | 16.5% |  -7.0%
+| 2 |  0.3% | 133.3% | 71.4% | -26.5% | 63.5% | -29.9%
+| 3 |  2.7% | 114.3% | 62.4% | -24.2% | 56.8% | -26.8%
+| 4 | 11.8% |  67.9% | 33.7% | -20.4% | 29.7% | -22.7%
+| 5 | 27.4% |  23.4% | 12.8% |  -8.6% | 11.0% | -10.1%
 
 ## Acknowledgement
 
