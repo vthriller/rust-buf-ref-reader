@@ -65,3 +65,42 @@ impl super::Buffer for VecBuffer {
 		&self.buf[ start .. (start+amount) ]
 	}
 }
+
+mod tests {
+	use super::*;
+	use crate::buffer::Buffer;
+
+	#[test]
+	fn enlarge() {
+		let mut buf = VecBuffer::new(4096).unwrap();
+
+		// make sure the rest of the test makes sense
+		// (this might fail on exotic machines with larger page sizes)
+		assert_eq!(buf.appendable().len(), 4096);
+
+		buf.mark_appended(1024);
+		assert_eq!(buf.appendable().len(), 4096-1024);
+
+		// buffer still has space, should be noop
+		buf.enlarge().unwrap();
+		assert_eq!(buf.appendable().len(), 4096-1024);
+
+		buf.mark_appended(4096-1024);
+		assert_eq!(buf.appendable().len(), 0);
+
+		// free some space at the beginning...
+		buf.consume(1024);
+		assert_eq!(buf.appendable().len(), 0);
+		// ...then make it available in appendable()
+		buf.enlarge().unwrap();
+		assert_eq!(buf.appendable().len(), 1024);
+
+		// fill the buffer again
+		buf.mark_appended(1024);
+		assert_eq!(buf.appendable().len(), 0);
+
+		// we have no space left, this should cause reallocation with doubling of the initial capacity
+		buf.enlarge().unwrap();
+		assert_eq!(buf.appendable().len(), 4096);
+	}
+}

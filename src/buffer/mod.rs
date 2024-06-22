@@ -64,8 +64,12 @@ where Self: std::marker::Sized
 	right after lifetime of returned slice ends (i.e. before another call to any of `Buffer`'s methods that accepts `&mut self`).
 	*/
 	fn consume(&mut self, amount: usize) -> &[u8];
-	/// Grow [`appendable()`](#tymethod.appendable) part of the buffer one way or the other
-	/// (by e.g. reallocating filled part of the buffer, or reallocating buffer itself)
+	/**
+	Grow [`appendable()`](#tymethod.appendable) part of the buffer one way or the other
+	(by e.g. reallocating filled part of the buffer, or reallocating buffer itself)
+
+	Does nothing if `appendable()` has some capacity left.
+	*/
 	fn enlarge(&mut self) -> Result<(), Self::Error>;
 	/// Return filled part of the buffer
 	fn filled(&self) -> &[u8];
