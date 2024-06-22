@@ -278,7 +278,7 @@ mod tests {
 		Error: From<B::Error>,
 	{
 		let mut r = BufRefReaderBuilder::new(WORDS)
-			.capacity(4)
+			.capacity(4) // rather pointless for MmapBuffer that rounds up to 4096 or whatever (see read_until_words_long)
 			.build::<B>()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'\n');
@@ -300,14 +300,14 @@ mod tests {
 	#[test] fn read_until_words_mmap() { read_until_words::<MmapBuffer>() }
 
 	// like read_until_words, but splits by rarest character, which is b'Q'
-	// also uses slightly bigger initial buffers
+	// this also ensures that MmapBuffer (that rounds capacity up to the page size right from the beginning) is going to reallocate itself at least once
 	fn read_until_words_long<B: Buffer>()
 	where
 		B::Error: Debug,
 		Error: From<B::Error>,
 	{
 		let mut r = BufRefReaderBuilder::new(WORDS)
-			.capacity(32)
+			.capacity(4096)
 			.build::<B>()
 			.unwrap();
 		let mut words = WORDS.split(|&c| c == b'Q').peekable();
